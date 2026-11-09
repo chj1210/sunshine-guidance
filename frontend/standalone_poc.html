@@ -1,0 +1,2457 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>陽光智導・廉政護航｜公職人員財產申報 AI 輔助領航員 POC</title>
+  <style>
+    :root {
+      --font-sans: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", system-ui, -apple-system, sans-serif;
+      --font-serif: "DFKai-SB", "BiauKai", "KaiTi", "PMingLiU", serif;
+      --amber-950: #451a03;
+      --amber-900: #78350f;
+      --amber-700: #b45309;
+      --amber-500: #f59e0b;
+      --amber-400: #fbbf24;
+      --amber-100: #fef3c7;
+      --amber-50: #fffbeb;
+      --emerald-800: #065f46;
+      --emerald-700: #047857;
+      --emerald-600: #059669;
+      --emerald-500: #10b981;
+      --emerald-100: #d1fae5;
+      --emerald-50: #ecfdf5;
+      --navy-950: #070e1c;
+      --navy-900: #0f172a;
+      --navy-800: #1e293b;
+      --navy-700: #334155;
+      --sky-700: #0369a1;
+      --sky-600: #0284c7;
+      --sky-500: #0ea5e9;
+      --sky-100: #e0f2fe;
+      --sky-50: #f0f9ff;
+      --red-700: #b91c1c;
+      --red-600: #dc2626;
+      --red-100: #fee2e2;
+      --red-50: #fef2f2;
+      --slate-900: #0f172a;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      color: var(--slate-900);
+      line-height: 1.5;
+      transition: background 0.3s ease;
+      overflow-x: hidden;
+    }
+
+    body.mode-guidance {
+      background: radial-gradient(circle at 10% 0%, #fef3c7 0%, #fafaf9 46%, #ecfdf5 100%);
+    }
+
+    body.mode-audit {
+      background: radial-gradient(circle at 90% 0%, #dbeafe 0%, #f1f5f9 50%, #f8fafc 100%);
+    }
+
+    /* 🎬 錄影導播快切列 (可一鍵收合/展開，支援快捷鍵 1~4 與 H) */
+    .director-bar {
+      background: #070e1c;
+      border-bottom: 1px solid rgba(251, 191, 36, 0.35);
+      color: #f8fafc;
+      padding: 6px 18px;
+      font-size: 12.5px;
+    }
+
+    .director-inner {
+      max-width: 1420px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .scene-pills {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .scene-btn {
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.06);
+      color: #e2e8f0;
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .scene-btn:hover {
+      background: rgba(251, 191, 36, 0.2);
+      border-color: #fbbf24;
+      color: #ffffff;
+    }
+
+    .scene-btn.active {
+      background: linear-gradient(90deg, #f59e0b 0%, #10b981 100%);
+      color: #070e1c;
+      border-color: transparent;
+      font-weight: 900;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.45);
+    }
+
+    .teleprompter-tip {
+      color: #fde68a;
+      font-weight: 700;
+      font-size: 12px;
+      background: rgba(245, 158, 11, 0.14);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      padding: 3px 10px;
+      border-radius: 8px;
+    }
+
+    /* Top Header */
+    .top-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 10px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(12px);
+      transition: background 0.3s ease;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.15);
+    }
+
+    body.mode-guidance .top-header {
+      background: linear-gradient(90deg, #451a03 0%, #78350f 45%, #064e3b 100%);
+      color: #fffbeb;
+    }
+
+    body.mode-audit .top-header {
+      background: linear-gradient(90deg, #070e1c 0%, #0f172a 50%, #1e293b 100%);
+      color: #f8fafc;
+    }
+
+    .header-inner {
+      max-width: 1420px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand-box {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 800;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+    }
+
+    body.mode-guidance .brand-icon {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      color: #1c1917;
+    }
+
+    body.mode-audit .brand-icon {
+      background: linear-gradient(135deg, #38bdf8, #2563eb);
+      color: #ffffff;
+    }
+
+    .brand-eyebrow {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #fcd34d;
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: 0.01em;
+    }
+
+    /* Dual-Mode Switcher */
+    .mode-switcher {
+      display: inline-flex;
+      background: rgba(0, 0, 0, 0.38);
+      padding: 4px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      gap: 4px;
+    }
+
+    .mode-btn {
+      border: none;
+      cursor: pointer;
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 800;
+      color: rgba(255, 255, 255, 0.8);
+      background: transparent;
+      transition: all 0.2s ease;
+    }
+
+    .mode-btn:hover {
+      color: #ffffff;
+    }
+
+    .mode-btn.active-guidance {
+      background: linear-gradient(90deg, #fbbf24 0%, #10b981 100%);
+      color: #070e1c;
+      box-shadow: 0 2px 12px rgba(251, 191, 36, 0.45);
+    }
+
+    .mode-btn.active-audit {
+      background: linear-gradient(90deg, #0ea5e9 0%, #4f46e5 100%);
+      color: #ffffff;
+      box-shadow: 0 2px 12px rgba(14, 165, 233, 0.45);
+    }
+
+    /* Right Badges */
+    .badge-cluster {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .self-built-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 10px;
+      background: rgba(251, 191, 36, 0.22);
+      border: 1px solid rgba(252, 211, 77, 0.65);
+      color: #fef08a;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .mission-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      border-radius: 10px;
+      background: rgba(16, 185, 129, 0.24);
+      border: 1px solid rgba(52, 211, 153, 0.7);
+      color: #a7f3d0;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      transition: transform 0.15s ease;
+    }
+
+    .mission-pill:hover {
+      transform: scale(1.02);
+    }
+
+    @keyframes pulseRing {
+      0% {
+        box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7);
+      }
+
+      70% {
+        box-shadow: 0 0 0 8px rgba(52, 211, 153, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(52, 211, 153, 0);
+      }
+    }
+
+    .pulse-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: #34d399;
+      display: inline-block;
+      animation: pulseRing 1.8s infinite;
+    }
+
+    /* Layout & KPI Strip */
+    .page-wrap {
+      max-width: 1420px;
+      margin: 0 auto;
+      padding: 14px 20px 28px;
+    }
+
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 980px) {
+      .kpi-strip {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .kpi-card {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 11px 15px;
+      border: 1px solid var(--slate-200);
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .kpi-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--slate-600);
+    }
+
+    .kpi-val {
+      font-size: 19px;
+      font-weight: 900;
+      color: var(--slate-900);
+      margin-top: 2px;
+    }
+
+    .kpi-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .mission-drawer {
+      background: linear-gradient(135deg, #070e1c 0%, #0f172a 100%);
+      color: #f8fafc;
+      border: 1.5px solid #10b981;
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 14px 32px rgba(15, 23, 42, 0.28);
+      animation: fadeSlideDown 0.25s ease;
+    }
+
+    @keyframes fadeSlideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+
+    .grid-2-asym {
+      display: grid;
+      grid-template-columns: 4.6fr 7.4fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .grid-2-equal {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 1060px) {
+
+      .grid-2-asym,
+      .grid-2-equal {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid var(--slate-200);
+      padding: 16px 18px;
+      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+    }
+
+    .card-guidance-accent {
+      border-color: #fcd34d;
+    }
+
+    .card-audit-accent {
+      border-color: #cbd5e1;
+    }
+
+    /* Case Selector Cards */
+    .case-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-top: 8px;
+    }
+
+    .case-btn {
+      text-align: left;
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 11px;
+      border: 1px solid var(--slate-200);
+      background: var(--slate-50);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.16s ease;
+    }
+
+    .case-btn:hover {
+      border-color: var(--amber-500);
+      background: #fffbeb;
+      transform: translateX(2px);
+    }
+
+    .case-btn.selected {
+      border: 2px solid var(--amber-700);
+      background: linear-gradient(90deg, #fef3c7 0%, #ecfdf5 100%);
+      box-shadow: 0 3px 12px rgba(180, 83, 9, 0.14);
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .tag-red {
+      background: var(--red-100);
+      color: var(--red-700);
+    }
+
+    .tag-orange {
+      background: #ffedd5;
+      color: #c2410c;
+    }
+
+    .tag-green {
+      background: var(--emerald-100);
+      color: var(--emerald-700);
+    }
+
+    .tag-blue {
+      background: var(--sky-100);
+      color: var(--sky-700);
+    }
+
+    /* Lamp Banner */
+    .risk-header {
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .risk-RED {
+      background: #fef2f2;
+      border: 2px solid #ef4444;
+      color: #991b1b;
+    }
+
+    .risk-ORANGE {
+      background: #fff7ed;
+      border: 2px solid #f97316;
+      color: #9a3412;
+    }
+
+    .risk-GREEN {
+      background: linear-gradient(90deg, #ecfdf5 0%, #d1fae5 100%);
+      border: 2px solid #10b981;
+      color: #065f46;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.18);
+    }
+
+    .fine-pill {
+      background: linear-gradient(135deg, #065f46, #047857);
+      color: #ffffff;
+      padding: 7px 14px;
+      border-radius: 11px;
+      font-size: 13px;
+      font-weight: 900;
+      box-shadow: 0 3px 10px rgba(6, 95, 70, 0.25);
+    }
+
+    .prescription-box {
+      background: #fffbeb;
+      border-left: 5px solid var(--amber-500);
+      border-radius: 10px;
+      padding: 11px 15px;
+      margin-bottom: 11px;
+      font-size: 13.8px;
+    }
+
+    .legal-box {
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-radius: 10px;
+      padding: 9px 14px;
+      font-size: 12.8px;
+      color: var(--slate-700);
+      margin-bottom: 12px;
+    }
+
+    /* Before vs After Animated Diff Grid */
+    .diff-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 780px) {
+      .diff-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .diff-box {
+      border-radius: 12px;
+      padding: 11px 13px;
+      transition: all 0.3s ease;
+    }
+
+    .diff-before {
+      background: #fff1f2;
+      border: 1.5px dashed #fb7185;
+    }
+
+    .diff-before.dimmed {
+      opacity: 0.58;
+      filter: grayscale(0.25);
+    }
+
+    .diff-after-pending {
+      background: #f8fafc;
+      border: 1.5px dashed #cbd5e1;
+      color: #64748b;
+    }
+
+    @keyframes popSuccess {
+      0% {
+        transform: scale(0.98);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+      }
+
+      60% {
+        transform: scale(1.01);
+        box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .diff-after-active {
+      background: #ecfdf5;
+      border: 2px solid #10b981;
+      color: #064e3b;
+      animation: popSuccess 0.45s ease;
+    }
+
+    .primary-action-btn {
+      width: 100%;
+      border: none;
+      cursor: pointer;
+      padding: 13px 18px;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 900;
+      background: linear-gradient(90deg, #d97706 0%, #059669 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 16px rgba(5, 150, 105, 0.32);
+      transition: transform 0.14s ease, box-shadow 0.14s ease;
+    }
+
+    .primary-action-btn:hover {
+      transform: translateY(-1.5px);
+      box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4);
+    }
+
+    .primary-action-btn.done {
+      background: linear-gradient(90deg, #059669 0%, #047857 100%);
+    }
+
+    /* Audit Sub-tabs */
+    .subtab-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .subtab-btn {
+      padding: 9px 16px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: var(--slate-700);
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .subtab-btn:hover {
+      border-color: var(--sky-500);
+      color: var(--navy-900);
+    }
+
+    .subtab-btn.active {
+      background: linear-gradient(90deg, #0f172a 0%, #1e3a8a 100%);
+      color: #ffffff;
+      border-color: transparent;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.24);
+    }
+
+    /* Graph Canvas with React-Flow-like Dot Matrix */
+    .graph-canvas-wrap {
+      background-color: #0b1325;
+      background-image: radial-gradient(rgba(148, 163, 184, 0.22) 1.2px, transparent 1.2px);
+      background-size: 20px 20px;
+      border-radius: 14px;
+      padding: 12px;
+      overflow-x: auto;
+      border: 1.5px solid #334155;
+      box-shadow: inset 0 2px 14px rgba(0, 0, 0, 0.45);
+    }
+
+    .flow-node-group {
+      cursor: pointer;
+    }
+
+    @keyframes dashMove {
+      to {
+        stroke-dashoffset: -24;
+      }
+    }
+
+    .flow-edge-anim {
+      stroke-dasharray: 7 5;
+      animation: dashMove 1s linear infinite;
+    }
+
+    /* Realistic Paper Gazette Form & Animated Red Pencil Strokes */
+    .gazette-paper {
+      background: #fffdf9;
+      border: 1.5px solid #94a3b8;
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: inset 0 0 24px rgba(180, 83, 9, 0.04), 0 4px 12px rgba(15, 23, 42, 0.06);
+    }
+
+    .gazette-header {
+      font-family: var(--font-serif);
+      text-align: center;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      border-bottom: 2px double #334155;
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+      color: #0f172a;
+    }
+
+    @keyframes strikeDraw {
+      from {
+        clip-path: inset(0 100% 0 0);
+      }
+
+      to {
+        clip-path: inset(0 0 0 0);
+      }
+    }
+
+    .red-strike-anim {
+      position: relative;
+      display: inline-block;
+      color: #b91c1c;
+      font-weight: 700;
+    }
+
+    .red-strike-anim::after {
+      content: "";
+      position: absolute;
+      left: -2px;
+      right: -2px;
+      top: 52%;
+      height: 3.2px;
+      background: #dc2626;
+      border-radius: 2px;
+      transform: rotate(-2.5deg);
+      animation: strikeDraw 0.55s ease forwards;
+    }
+
+    @keyframes checkPop {
+      0% {
+        opacity: 0;
+        transform: scale(0.4) rotate(-12deg);
+      }
+
+      75% {
+        opacity: 1;
+        transform: scale(1.2) rotate(4deg);
+      }
+
+      100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+      }
+    }
+
+    .red-check {
+      display: inline-block;
+      color: #dc2626;
+      font-size: 22px;
+      font-weight: 900;
+      font-family: "Comic Sans MS", "KaiTi", cursive;
+      margin-left: 6px;
+      animation: checkPop 0.45s 0.35s both ease-out;
+    }
+
+    .red-star {
+      display: inline-block;
+      color: #dc2626;
+      font-size: 21px;
+      font-weight: 900;
+      margin-right: 5px;
+      animation: checkPop 0.45s ease-out;
+    }
+
+    .yellow-sticky {
+      background: linear-gradient(180deg, #fef08a 0%, #fde047 100%);
+      color: #713f12;
+      border-left: 5px solid #eab308;
+      padding: 10px 12px;
+      border-radius: 4px 10px 10px 4px;
+      font-size: 12.5px;
+      font-weight: 800;
+      box-shadow: 4px 5px 12px rgba(0, 0, 0, 0.16);
+      transform: rotate(-0.8deg);
+    }
+
+    .prohibition-banner {
+      background: linear-gradient(90deg, #b91c1c, #dc2626);
+      color: #ffffff;
+      padding: 10px 15px;
+      border-radius: 10px;
+      font-weight: 900;
+      font-size: 13.8px;
+      margin-bottom: 12px;
+      border: 2px solid #7f1d1d;
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.28);
+    }
+
+    /* Sky-blue Official Review Slip + Two Staples */
+    .sky-review-slip {
+      position: relative;
+      background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 100%);
+      border: 2px solid #0284c7;
+      border-radius: 14px;
+      padding: 16px 18px 26px;
+      color: #0c4a6e;
+      box-shadow: 0 6px 18px rgba(2, 132, 199, 0.16);
+    }
+
+    .staple-marks {
+      position: absolute;
+      right: 18px;
+      bottom: 8px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-size: 11.5px;
+      font-weight: 800;
+      color: #0369a1;
+    }
+
+    .staple-pin {
+      width: 18px;
+      height: 4px;
+      background: linear-gradient(90deg, #64748b, #cbd5e1, #475569);
+      border: 1px solid #334155;
+      border-radius: 2px;
+      transform: rotate(-8deg);
+      display: inline-block;
+    }
+
+    .slip-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0;
+      background: rgba(255, 255, 255, 0.88);
+    }
+
+    .slip-table th,
+    .slip-table td {
+      border: 1px solid #0284c7;
+      padding: 7px 10px;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .abcx-letter {
+      font-size: 22px;
+      font-weight: 900;
+      color: #0369a1;
+    }
+
+    .abcx-letter.is-B,
+    .abcx-letter.is-C {
+      color: #dc2626;
+    }
+
+    /* Official Control Yuan Letter Preview & Red Chop Stamps */
+    .yuan-doc-paper {
+      position: relative;
+      background: #fffefb;
+      border: 1.5px solid #cbd5e1;
+      border-left: 5px solid #b45309;
+      border-radius: 10px;
+      padding: 12px 14px;
+      overflow: hidden;
+    }
+
+    .yuan-watermark {
+      position: absolute;
+      right: 12px;
+      top: 10px;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 900;
+      border: 1.5px solid #d97706;
+      color: #b45309;
+      background: #fef3c7;
+    }
+
+    .yuan-watermark.unlocked {
+      border-color: #059669;
+      color: #065f46;
+      background: #d1fae5;
+    }
+
+    @keyframes stampSlam {
+      0% {
+        opacity: 0;
+        transform: scale(1.8) rotate(-8deg);
+      }
+
+      70% {
+        opacity: 1;
+        transform: scale(0.95) rotate(-3deg);
+      }
+
+      100% {
+        opacity: 1;
+        transform: scale(1) rotate(-3deg);
+      }
+    }
+
+    .chop-stamp {
+      display: inline-block;
+      border: 2.5px solid #dc2626;
+      color: #dc2626;
+      background: rgba(254, 226, 226, 0.45);
+      font-family: var(--font-serif);
+      font-weight: 900;
+      font-size: 13px;
+      padding: 3px 10px;
+      border-radius: 4px;
+      letter-spacing: 0.06em;
+      transform: rotate(-3deg);
+      animation: stampSlam 0.35s ease-out;
+    }
+
+    /* Toast Notification for Video Feedback */
+    .demo-toast {
+      position: fixed;
+      bottom: 22px;
+      right: 22px;
+      z-index: 99;
+      background: #070e1c;
+      color: #f8fafc;
+      border: 1.5px solid #10b981;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-size: 13.5px;
+      font-weight: 800;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+      display: none;
+      align-items: center;
+      gap: 10px;
+      animation: fadeSlideDown 0.25s ease;
+    }
+
+    /* Tables & Controls */
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    table.data-table th,
+    table.data-table td {
+      border: 1px solid var(--slate-200);
+      padding: 7px 10px;
+      text-align: left;
+    }
+
+    table.data-table th {
+      background: var(--slate-100);
+      font-weight: 800;
+    }
+
+    input[type="text"],
+    select {
+      width: 100%;
+      padding: 8px 11px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    .btn-secondary {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: var(--slate-900);
+      padding: 7px 13px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-secondary:hover {
+      background: var(--slate-100);
+    }
+
+    .btn-navy {
+      border: none;
+      background: var(--navy-900);
+      color: #ffffff;
+      padding: 9px 15px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-navy:hover {
+      background: var(--navy-800);
+    }
+  </style>
+</head>
+
+<body class="mode-guidance">
+
+  <!-- 🎬 競賽 3 分鐘 Demo 錄影分鏡導播列（支援鍵盤數字鍵 1~4 快切、H 鍵隱藏/顯示） -->
+  <div id="directorBar" class="director-bar">
+    <div class="director-inner">
+      <div class="scene-pills">
+        <span style="font-weight:900;color:#fbbf24;">🎬 3分鐘錄影分鏡快切：</span>
+        <button id="sceneBtn1" class="scene-btn active" onclick="jumpDemoScene(1)">
+          [1] 0:00 破題＆AI治理面板
+        </button>
+        <button id="sceneBtn2" class="scene-btn" onclick="jumpDemoScene(2)">
+          [2] 0:30 陽光智導艙（預售屋＆零股防罰）
+        </button>
+        <button id="sceneBtn3" class="scene-btn" onclick="jumpDemoScene(3)">
+          [3] 1:30 廉政護航台（李○○圖譜＆紅筆 √/★）
+        </button>
+        <button id="sceneBtn4" class="scene-btn" onclick="jumpDemoScene(4)">
+          [4] 2:25 ABCX天藍審核單＆HITL雙重蓋章
+        </button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="teleprompterText" class="teleprompter-tip"> 鏡頭重點：展示自主實作、無狀態隱私防火牆與純 Python 零幻覺架構</span>
+        <button class="scene-btn" title="按鍵盤 H 鍵可隨時隱藏或喚回本導播列" onclick="toggleDirectorBar()">隱藏導播列 [H]</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 頂部雙模式導覽列 -->
+  <header class="top-header">
+    <div class="header-inner">
+      <div class="brand-box">
+        <div class="brand-icon" id="brandIcon">☀️</div>
+        <div>
+          <div class="brand-eyebrow">監察院公職人員財產申報處・115年公務機關AI卓越應用競賽 POC</div>
+          <h1 class="brand-title">陽光智導・廉政護航：公職人員財產申報AI輔助領航員</h1>
+        </div>
+      </div>
+
+      <!-- Dual-Mode Switcher -->
+      <div class="mode-switcher" role="tablist" aria-label="雙模式切換器">
+        <button id="btnModeGuidance" class="mode-btn active-guidance" onclick="switchMode('GUIDANCE')">
+          ☀️ 模式一：陽光智導艙（申報前端防罰）
+        </button>
+        <button id="btnModeAudit" class="mode-btn" onclick="switchMode('AUDIT')">
+          🛡️ 模式二：廉政護航台（跨期勾稽＆ABCX）
+        </button>
+      </div>
+
+      <!-- 右上角常駐標章 -->
+      <div class="badge-cluster">
+        <div class="self-built-pill">
+          公務同仁自主實作（零委外預算）
+        </div>
+        <button class="mission-pill" onclick="toggleMissionDrawer()">
+          <span class="pulse-dot"></span>
+          <span>Mission Control: Glass-box AI 治理狀態燈</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+    <!-- Mission Control Glass-box Drawer -->
+    <section id="missionDrawer" class="mission-drawer" style="display:none;">
+      <div
+        style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #334155;padding-bottom:8px;">
+        <div style="font-weight:900;color:#6ee7b7;font-size:14.5px;">
+          🔬 Google ADK 五大協同 Agent ＆ Glass-box 可解釋性 AI 治理監控中心
+          <span id="apiConnBadge" class="tag tag-green" style="margin-left:8px;">連線檢測中...</span>
+        </div>
+        <button class="btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="toggleMissionDrawer()">收合面板
+          ✕</button>
+      </div>
+      <div class="grid-4" style="font-size:12.5px;">
+        <div style="background:#1e293b;padding:11px 13px;border-radius:10px;border:1px solid #334155;">
+          <div style="color:#fcd34d;font-weight:800;margin-bottom:3px;">✓ 1. 零幻覺純 Python 確定性引擎</div>
+          <div style="color:#cbd5e1;">嚴禁 LLM 演算！民國年5年屆滿、跨證券戶股數歸戶（≥1,000股）、100萬元門檻與 68/90 天時效 100% 由
+            <code>deterministic_rules.py</code> 精算。
+          </div>
+        </div>
+        <div style="background:#1e293b;padding:11px 13px;border-radius:10px;border:1px solid #334155;">
+          <div style="color:#fcd34d;font-weight:800;margin-bottom:3px;">✓ 2. 輔導與查核無狀態防火牆</div>
+          <div style="color:#cbd5e1;">陽光智導艙採 <code>STATELESS</code> 記憶體隔離，申報人上傳前之預檢草稿與法規提問即時銷毀，絕不留存作為事後裁罰依據。</div>
+        </div>
+        <div style="background:#1e293b;padding:11px 13px;border-radius:10px;border:1px solid #334155;">
+          <div style="color:#fcd34d;font-weight:800;margin-bottom:3px;">✓ 3. 地端主權 AI 零外洩架構</div>
+          <div style="color:#cbd5e1;">支援院內封閉網域與通過 AIEC 評測之繁中模型部署，機敏財產個資不出監察院內網，恪守《人工智慧基本法》與個資法。</div>
+        </div>
+        <div style="background:#1e293b;padding:11px 13px;border-radius:10px;border:1px solid #334155;">
+          <div style="color:#fcd34d;font-weight:800;margin-bottom:3px;">✓ 4. Human-in-the-Loop 雙重簽章</div>
+          <div style="color:#cbd5e1;">Y1.1~Y99 院函與更正通知強制鎖定為 Gmail 草稿，須經「承辦人初審 ➔ 組長覆核」雙簽蓋章並寫入 SHA-256 稽核日誌始放行。</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- 模式一：☀️ 陽光智導艙 (External Guidance Pod)                      -->
+    <!-- ================================================================== -->
+    <section id="sectionGuidance">
+      <!-- 頂部視覺化 4 大即時指標卡（錄影一鏡到底超吸睛） -->
+      <div class="kpi-strip">
+        <div class="kpi-card" style="border-left:4px solid #f59e0b;">
+          <div>
+            <div class="kpi-label">主動守護黃金準則</div>
+            <div class="kpi-val">16 條全開 <span style="font-size:12px;color:#b45309;">(4大模組)</span></div>
+          </div>
+          <div class="kpi-badge" style="background:#fef3c7;">🛡️</div>
+        </div>
+        <div class="kpi-card" style="border-left:4px solid #10b981;">
+          <div>
+            <div class="kpi-label">本案成功攔截潛在罰鍰</div>
+            <div class="kpi-val" id="kpiCurrentSaved" style="color:#047857;">NT$ 450,000</div>
+          </div>
+          <div class="kpi-badge" style="background:#d1fae5;">💰</div>
+        </div>
+        <div class="kpi-card" style="border-left:4px solid #0ea5e9;">
+          <div>
+            <div class="kpi-label">數值／日期算術幻覺率</div>
+            <div class="kpi-val">0.0% <span style="font-size:12px;color:#0369a1;">(純Python精算)</span></div>
+          </div>
+          <div class="kpi-badge" style="background:#e0f2fe;">🧮</div>
+        </div>
+        <div class="kpi-card" style="border-left:4px solid #8b5cf6;">
+          <div>
+            <div class="kpi-label">申報人隱私防火牆</div>
+            <div class="kpi-val" style="font-size:15.5px;color:#5b21b6;">🔒 Stateless 零留存</div>
+          </div>
+          <div class="kpi-badge" style="background:#ede9fe;">🔥</div>
+        </div>
+      </div>
+
+      <div class="grid-2-asym">
+        <!-- 左側：10大高頻誤報與裁罰情境模擬器 -->
+        <div class="card card-guidance-accent">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <h2 style="margin:0;font-size:15.5px;font-weight:900;color:#78350f;">
+              📋 10 大高頻誤報與裁罰情境模擬器
+            </h2>
+            <span class="tag tag-orange">測試軌 B（宣導簡報案例）</span>
+          </div>
+
+          <!-- 完整 11 組下拉選單 -->
+          <div style="margin:8px 0;">
+            <select id="fullCaseSelect" onchange="selectGuidanceCase(this.value)"></select>
+          </div>
+
+          <!-- 7 大快速情境卡片 -->
+          <div id="featuredCaseCards" class="case-list"></div>
+
+          <!-- 自訂草稿與 114/11/01 虛擬資產錢包地址即時測試 -->
+          <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--slate-200);">
+            <div style="font-size:12.5px;font-weight:800;color:#78350f;margin-bottom:6px;">
+              🧪 自訂申報草稿 ＆ 114/11/01 虛擬資產錢包地址即時防呆測試
+            </div>
+            <div style="display:grid;gap:6px;">
+              <input id="customRemarksInput" type="text" value="本人於113年購買陽光建案預售屋1戶，已付工程款290萬元"
+                placeholder="輸入主表(十三)備註欄文字..." />
+              <div style="display:grid;grid-template-columns:1fr 1.2fr auto;gap:6px;">
+                <input id="customCryptoVal" type="text" value="350000" placeholder="虛擬資產(元)" />
+                <input id="customWalletAddr" type="text" value="" placeholder="錢包地址(留空測攔截)" />
+                <button class="btn-secondary" style="border-color:#d97706;color:#92400e;white-space:nowrap;"
+                  onclick="runCustomDraftCheck()">
+                  ⚡ 掃描
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右側：AI 申報體檢與溫馨輔導處方箋 + 法規 RAG 問答 -->
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="card card-guidance-accent" id="prescriptionPanel"></div>
+
+          <!-- 陽光法案條文檢索問答介面 (RAG Q&A) -->
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
+              <h3 style="margin:0;font-size:15px;font-weight:900;color:#065f46;">
+                📚 陽光法案＆114書審實務指南 RAG 智慧法規問答（強制附法源依據）
+              </h3>
+              <span class="tag tag-green">零幻覺法源綁定</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+              <button class="btn-secondary" style="font-size:12px;padding:4px 9px;"
+                onclick="askRagPreset('預售屋已經在備註欄寫已付工程款，還要報嗎？')">預售屋109訴字198號判決</button>
+              <button class="btn-secondary" style="font-size:12px;padding:4px 9px;"
+                onclick="askRagPreset('不同證券戶的零股跟100萬門檻怎麼算強制信託？')">跨證券戶零股100萬門檻</button>
+              <button class="btn-secondary" style="font-size:12px;padding:4px 9px;"
+                onclick="askRagPreset('地目田或兩戶打通自住可以免信託嗎？')">免信託耕地§33與打通屋</button>
+              <button class="btn-secondary" style="font-size:12px;padding:4px 9px;"
+                onclick="askRagPreset('公股董監事10日職務異動通報與代理滿3個月真除怎麼報？')">公股董監事專任＆代理真除</button>
+              <button class="btn-secondary" style="font-size:12px;padding:4px 9px;"
+                onclick="askRagPreset('114年新制虛擬資產跟儲蓄險保單怎麼申報？')">114虛擬資產錢包＆儲蓄險</button>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <input id="ragQuestionInput" type="text" value="不同證券戶的零股跟100萬門檻怎麼算強制信託？" />
+              <button class="btn-navy" style="white-space:nowrap;background:#047857;"
+                onclick="executeRagSearch()">檢索解答</button>
+            </div>
+            <div id="ragAnswerContainer" style="margin-top:10px;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- 模式二：🛡️ 廉政護航台 (Internal Audit Desk)                        -->
+    <!-- ================================================================== -->
+    <section id="sectionAudit" style="display:none;">
+      <!-- 內部書審 4 大效能指標條 -->
+      <div class="kpi-strip">
+        <div class="kpi-card" style="border-left:4px solid #0ea5e9;">
+          <div>
+            <div class="kpi-label">114定期申報總收件數</div>
+            <div class="kpi-val">1,398 案 <span style="font-size:12px;color:#0369a1;">(4大公報梯次)</span></div>
+          </div>
+          <div class="kpi-badge" style="background:#e0f2fe;">🗂️</div>
+        </div>
+        <div class="kpi-card" style="border-left:4px solid #10b981;">
+          <div>
+            <div class="kpi-label">A類無誤案件自動分流率</div>
+            <div class="kpi-val" style="color:#047857;">82.0% <span style="font-size:12px;">(約1,146案免分案)</span></div>
+          </div>
+          <div class="kpi-badge" style="background:#d1fae5;">⚡</div>
+        </div>
+        <div class="kpi-card" style="border-left:4px solid #f59e0b;">
+          <div>
+            <div class="kpi-label">單案跨年跨四表初審耗時</div>
+            <div class="kpi-val">40分 ➔ 6分 <span style="font-size:12px;color:#b45309;">(-85%)</span></div>
+          </div>
+          <div class="kpi-badge" style="background:#fef3c7;">⏱️</div>
+        </div>
+        <div class="kpi-card" style="border-left:4px solid #ef4444;">
+          <div>
+            <div class="kpi-label">對外院函＆更正通知管控</div>
+            <div class="kpi-val" style="font-size:15.5px;color:#b91c1c;">🔏 雙重簽章鎖定中</div>
+          </div>
+          <div class="kpi-badge" style="background:#fee2e2;">🏛️</div>
+        </div>
+      </div>
+
+      <!-- 三幕劇子頁籤導覽 -->
+      <div class="subtab-bar">
+        <button id="subTabBtnA" class="subtab-btn active" onclick="switchAuditSubTab('TAB_A')">
+          🕸️ 子頁籤 A：跨期動態資產軌跡圖譜 (李○○ 111~115 真實公報實證)
+        </button>
+        <button id="subTabBtnB" class="subtab-btn" onclick="switchAuditSubTab('TAB_B')">
+          ✏️ 子頁籤 B：B類紅鉛筆逕修 (√) 與 C類星號更正 (★) 擬真批改圖層
+        </button>
+        <button id="subTabBtnC" class="subtab-btn" onclick="switchAuditSubTab('TAB_C')">
+          🗂️ 子頁籤 C：天藍色《形式審核單 (ABCX)》＆ Y1.1~Y99 院函雙簽中心
+        </button>
+      </div>
+
+      <!-- 子頁籤 A：跨期動態資產軌跡圖譜 -->
+      <div id="auditTabA">
+        <div class="card card-audit-accent">
+          <div
+            style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
+            <div>
+              <h2 style="margin:0;font-size:16px;font-weight:900;color:var(--navy-900);">
+                🕸️ 測試軌 A：李○○副院長（111～115年廉政專刊公開公報）跨期跨表動態資產知識圖譜
+              </h2>
+              <div style="font-size:12.5px;color:var(--slate-600);margin-top:2px;">
+                點擊劇本切換鈕或圖譜任一節點，即時高亮呈現《附表一丙》、《附表三》、《指示通知表》與《新增信託表》跨表勾稽證據：
+              </div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;">
+              <button id="btnGraphS1" class="btn-navy" onclick="renderAssetGraph('SCENARIO_1')">
+                劇本 1：111~113年 淡水竹圍段「配偶贈與」移轉鏈
+              </button>
+              <button id="btnGraphS2" class="btn-secondary" onclick="renderAssetGraph('SCENARIO_2')">
+                劇本 2：114~115年 泰山同興段「抵押設定」68/90天再信託鏈
+              </button>
+              <button id="btnGraphS3" class="btn-secondary" onclick="renderAssetGraph('SCENARIO_SPLIT')">
+                劇本 3：地號 0005 ➔ 0005-1/0005-2 分割裂變攔截
+              </button>
+            </div>
+          </div>
+
+          <div id="assetGraphSummaryBar" style="margin-bottom:10px;"></div>
+          <div class="graph-canvas-wrap">
+            <svg id="assetFlowSvg" viewBox="0 0 1160 255"
+              style="width:100%;min-width:880px;height:auto;display:block;"></svg>
+          </div>
+
+          <div class="grid-2-equal" style="margin-top:14px;">
+            <div id="selectedGraphNodeDetail" class="card" style="background:var(--slate-50);"></div>
+            <div class="card" style="background:var(--sky-50);border-color:#bae6fd;">
+              <div style="font-size:13.5px;font-weight:900;color:#0c4a6e;margin-bottom:6px;">
+                📜 李○○副院長 111～115 年 8 份真實公報申報軌跡時間軸總覽
+              </div>
+              <div style="font-size:12.5px;color:#1e293b;display:grid;gap:5px;">
+                <div>• <b>111/08/19 就到職</b>（專刊194期）：東京芝浦房地 <code>20,102,810元</code> 含 <code>1★</code>
+                  自動更正註記、雲林四湖耕地、大安通化自住屋、泰山3筆未登記建物、3輛汽車、存款3,674萬、授信債務1.14億、永錡加油站200萬、第一銀行信託表。</div>
+                <div>• <b>112/11/01 定期</b>（專刊249期）：東京芝浦房地、雲林四湖耕地與 TOYOTA 汽車滿 5 年自動轉註 <code>（超過五年）</code>。</div>
+                <div>• <b>113/08/27 指示通知 ➔ 113/09/10 新增信託 ➔ 113/11/01
+                    定期</b>：淡水竹圍段房地夫妻贈與，信託前所有人變更為配偶<b>劉○○</b>（113/08/09移轉）。</div>
+                <div>• <b>114/11/01 定期</b>（專刊309期）：JAGUAR 汽車滿 5 年轉註 <code>（超過五年）</code>；4 類不動產免信託原因全數合規。</div>
+                <div>• <b>114/12/17 抵押指示通知 ➔ 115/02/23 新增信託</b>：泰山同興段 3 筆土地（869.04、1535.03、666 m²，持分40/100）第 <b>68
+                    天</b>完竣，職稱更新為「<b>1.代理院長、2.副院長</b>」。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 子頁籤 B：B類紅鉛筆逕修 (√) 與 C類星號更正 (★) 智慧標記預覽 -->
+      <div id="auditTabB" style="display:none;">
+        <div class="card card-audit-accent" style="margin-bottom:14px;">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;">
+            <div>
+              <h2 style="margin:0;font-size:16px;font-weight:900;color:var(--navy-900);">
+                ✏️ 左右分屏書審批改圖層：A類合規綠章 ／ B類紅鉛筆打勾 (√) 便利貼 ／ C類星號更正 (★) 傳真底稿
+              </h2>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;">
+              <button id="btnRedModeA" class="btn-navy" onclick="loadAuditScenario('LEE_114_A')">
+                1. 李○○ 114 定期（JAGUAR滿5年＋4綠章）
+              </button>
+              <button id="btnRedModeB" class="btn-secondary" onclick="loadAuditScenario('SYSTEM_DEFAULT_B')">
+                2. B類紅鉛筆逕修 √（劃除預設房地總價額＋黃便利貼）
+              </button>
+              <button id="btnRedModeC" class="btn-secondary" onclick="loadAuditScenario('UNREPORTED_CHANGE_C')">
+                3. C類星號更正 ★（欄位轉換傳真底稿＋禁網路更正）
+              </button>
+              <button class="btn-secondary" style="border-color:#dc2626;color:#b91c1c;"
+                onclick="replayRedPencilAnimation()">
+                ▶️ 重播紅筆手繪批改動畫
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="redPencilSplitContainer" class="grid-2-equal"></div>
+      </div>
+
+      <!-- 子頁籤 C：網路定期申報案件形式審核單 (ABCX) 與 HITL 覆核中心 -->
+      <div id="auditTabC" style="display:none;">
+        <!-- 1,398 案四梯次看板 -->
+        <div class="card card-audit-accent" style="margin-bottom:14px;">
+          <div
+            style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
+            <div>
+              <h2 style="margin:0;font-size:15.5px;font-weight:900;color:var(--navy-900);">
+                📅 114 年度定期申報 1,398 案四大公報結案梯次看板（Agentic Priority Ranking ＆ 卷宗便利貼標籤）
+              </h2>
+            </div>
+            <span class="tag tag-green" style="font-size:12.5px;padding:4px 11px;">115/01/06
+              中午前啟動書審｜A類快速結案率：82.0%</span>
+          </div>
+          <div id="batchKanbanGrid" class="grid-4"></div>
+        </div>
+
+        <!-- 形式審核單 + 財管片語 + Y1.1~Y99 院函例稿 + HITL 雙重簽章 -->
+        <div class="grid-2-equal">
+          <!-- 左欄：天藍色《網路定期申報案件形式審核單》 -->
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <div style="font-size:15px;font-weight:900;color:var(--navy-900);">
+                📄 擬真天藍色《網路定期申報案件形式審核單》
+              </div>
+              <select id="triageScenarioSelect" style="width:auto;font-weight:700;"
+                onchange="loadAuditScenario(this.value)">
+                <option value="LEE_114_A">李○○ 114定期（A類無誤結案）</option>
+                <option value="SYSTEM_DEFAULT_B">李榮長 繼承帶出房地總價額（B類 √）</option>
+                <option value="UNREPORTED_CHANGE_C">張國棟 漏報變動/未信託（C類 ★）</option>
+              </select>
+            </div>
+            <div id="skyBlueSlipContainer"></div>
+          </div>
+
+          <!-- 右欄：財管系統審核片語 + Y1.1~Y99 院函例稿 + HITL 簽章 -->
+          <div class="card">
+            <h3 style="margin:0 0 9px;font-size:15px;font-weight:900;color:var(--navy-900);">
+              🏛️ 財管系統審核片語 ＆《監察院函（稿）》Y1.1～Y99 例稿預覽
+            </h3>
+
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+              <div>
+                <label style="font-size:12px;font-weight:700;display:block;margin-bottom:2px;">Y:\C010_第一組 院函例稿
+                  (12種)：</label>
+                <select id="yuanCodeSelect" onchange="refreshYuanLetterPreview()"></select>
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;display:block;margin-bottom:2px;">更正次數：</label>
+                <select id="correctionRoundSelect" onchange="refreshYuanLetterPreview()">
+                  <option value="1">【第1次】更正案</option>
+                  <option value="2">【第2次】更正案</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:12px;font-weight:700;display:block;margin-bottom:2px;">標的表格：</label>
+                <select id="targetFormSelect" onchange="refreshYuanLetterPreview()">
+                  <option value="主表">主表</option>
+                  <option value="變動表">變動表</option>
+                  <option value="信託表">信託表</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="phraseAndLetterBox"></div>
+
+            <!-- Human-in-the-Loop 雙重確認簽章區 -->
+            <div style="margin-top:12px;padding-top:12px;border-top:2px solid var(--slate-200);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <span style="font-size:13.5px;font-weight:900;color:var(--navy-900);">
+                  🔏 Human-in-the-Loop 雙重人工覆核蓋章中心
+                </span>
+                <span id="stampZone" style="display:flex;gap:8px;"></span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                <input id="hitlOfficerInput" type="text" value="第一組承辦人 李大同" />
+                <input id="hitlSupervisorInput" type="text" value="第一組組長 林○○" />
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <button id="btnOfficerSign" class="btn-secondary"
+                  style="border-color:#0284c7;color:#0369a1;padding:10px;font-size:13px;" onclick="step1OfficerSign()">
+                  1️⃣ 承辦人初審蓋章確認
+                </button>
+                <button id="btnSupervisorApprove" class="btn-navy"
+                  style="background:#059669;padding:10px;font-size:13px;" onclick="step2SupervisorApprove()">
+                  2️⃣ 組長覆核蓋章（解鎖草稿＆寫入雜湊）
+                </button>
+              </div>
+              <div id="hitlLedgerBox" style="margin-top:10px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 錄影動態回饋 Toast -->
+  <div id="demoToast" class="demo-toast"></div>
+
+  <script>
+    const FEATURED_CARDS = [
+      { id: 'B1', slot: '案例 1', title: '預售屋填備註欄僅報已付 290 萬', sub: '109訴字198號判決｜移列(九).1填契約總價 2,694 萬', fine: '免罰 45 萬', sev: 'RED' },
+      { id: 'B4', slot: '案例 2', title: '土地地號 0005 分割出售漏報變動', sub: '母子號裂變 0005-1/0005-2｜變動申報完全無介接', fine: '免罰 120 萬', sev: 'RED' },
+      { id: 'B5', slot: '案例 3', title: '融資買台積電漏報 1,503 萬融資債務', sub: '凱基融資債務＋日進融券賣陽明 9 張四宮格歸位', fine: '免罰 32 萬', sev: 'RED' },
+      { id: 'B9', slot: '案例 4', title: '跨證券戶中鋼 800+400 股與台積電 200 股零股試算', sub: '純 Python 分戶跨帳戶歸戶 ≥1,000股 & 100萬門檻', fine: '免罰 36 萬', sev: 'RED' },
+      { id: 'B8', slot: '案例 5', title: '假耕地（地目田/農舍）與雙權狀打通自住屋檢核', sub: '農發條例§33四大分區農牧用地 & 自住單一權狀1戶', fine: '免罰 60 萬', sev: 'RED' },
+      { id: 'N1', slot: '案例 6', title: '職務異動 10 日通報與代理真除定性', sub: '公股董監事必選就到職+專任｜代理期間真除免重複辦', fine: '保障時效', sev: 'ORANGE' },
+      { id: 'B10', slot: '案例 7', title: '切換頁籤遺失信託合約 PDF ＆處分前指示通知防呆', sub: '事前通知 90 天不可展期鐵律＋鎖定守護 PDF 附件', fine: '免罰 10~200 萬', sev: 'RED' }
+    ];
+
+    const FALLBACK_CASES = {
+      B1: {
+        case_id: 'B1', short_title: '案例1：預售屋填備註欄僅報已付290萬', rule_id: 'Rule 2-2', severity: 'RED',
+        declarant: '王志明（簡任第十二職等處長）', potential_fine_avoided_ntd: 450000, potential_fine_label: '免除 45 萬元申報不實罰鍰',
+        legal_basis: '《公職人員財產申報法》第5條第1項第2款、臺北高等行政法院 109 年度訴字第 198 號判決要旨（於備註欄敘明已付款 ≠ 免除應申報買賣契約交易總價額之義務）',
+        warm_prescription: '報告處長，陽光智導小幫手在您的「備註欄」發現預售屋購買紀錄！貼心提醒您：預售屋屬於具有相當價值之『權利』，地政機關尚無介接資料，法院實務判決認定不能只寫在備註欄或只填已付工程款 290 萬元喔！點擊下方按鈕，AI 立即幫您搬移至『(九).1 其他具有相當價值之財產』並改填契約總價額 2,694 萬元！',
+        draft_before: { section: '（十三）備註欄【誤填位置】', item_name: '購買陽光建設「紅葉賞」預售屋B3棟8樓含車位，已付訂金及工程款 290 萬元（(九).1 欄空白）', declared_amount_ntd: 2900000 },
+        draft_after: { section: '（九）.1 珠寶、古董、字畫及其他具有相當價值之財產【正確歸位】', item_name: '預售屋（陽光建設「紅葉賞」B3棟8樓含車位，買賣契約總價 26,940,000 元；備註載明已付 290 萬）', declared_amount_ntd: 26940000 }
+      },
+      B2: {
+        case_id: 'B2', short_title: '案例B2：基準日前夕領現140+30萬放家中未報', rule_id: 'Rule 2-3', severity: 'RED',
+        declarant: '林淑芬（公營事業總經理）', potential_fine_avoided_ntd: 300000, potential_fine_label: '免除 30 萬元現金漏報罰鍰',
+        legal_basis: '《公職人員財產申報法施行細則》第14條第1項（現金總額達新臺幣 100 萬元者應申報；家中或保管箱現鈔無介接）',
+        warm_prescription: '溫馨提醒：您在基準日前夕有一筆 140 萬元臨櫃提領紀錄，目前『(六) 現金』欄為 0 元。若基準日當日尚未轉存，連同家中/保管箱原有 30 萬元現鈔合計達 170 萬元（逾 100 萬門檻），請一鍵補登現金總額！',
+        draft_before: { section: '（六）現金', item_name: '本欄空白（惟 114/10/29 臨櫃提領 140 萬元＋保管箱原存現鈔 30 萬元）', declared_amount_ntd: 0 },
+        draft_after: { section: '（六）現金', item_name: '新臺幣現鈔（含住處及銀行保管箱留存現金合計）', declared_amount_ntd: 1700000 }
+      },
+      B3: {
+        case_id: 'B3', short_title: '案例B3：漏報未上市船舶股票3,990萬與配偶有限公司出資45萬分流', rule_id: 'Rule 2-4', severity: 'RED',
+        declarant: '陳海峰（航港機關首長）', potential_fine_avoided_ntd: 800000, potential_fine_label: '免除 80 萬元未上市股票漏報罰鍰',
+        legal_basis: '《公職人員財產申報法》第5條、填表說明個別事項第11點及第17點（已發行未上市股票按票面10元入股票欄；有限公司出資額入事業投資且滿100萬始須申報）',
+        warm_prescription: '系統協助您精準分流『股票 vs. 事業投資』！未上市櫃但已發行股票之『宏海船舶股份有限公司』集保無介接，應按票面 10 元計算填入『(八).1 股票』（3,990 萬元）；至於配偶『好味有限公司』出資 45 萬元屬事業投資，未達 100 萬門檻依法免報！',
+        draft_before: { section: '（八）.1 股票 / （十二）事業投資', item_name: '漏報未送存集保之『宏海船舶公司』3,990,000股；誤將配偶『好味有限公司』出資45萬填入股票欄', declared_amount_ntd: 450000 },
+        draft_after: { section: '（八）.1 股票（精準分流後）', item_name: '宏海船舶股份有限公司 3,990,000 股 × 票面 10 元 = 39,900,000 元（有限公司出資45萬未滿100萬免填）', declared_amount_ntd: 39900000 }
+      },
+      B4: {
+        case_id: 'B4', short_title: '案例2：土地地號0005分割為0005-1及0005-2出售漏報變動', rule_id: 'Rule 3-2 & 3-3', severity: 'RED',
+        declarant: '張國棟（立法委員／變動申報身分）', potential_fine_avoided_ntd: 1200000, potential_fine_label: '免除最高 120 萬元變動申報漏報罰鍰',
+        legal_basis: '《公職人員財產申報法》第8條第1項、第12條第3項（變動申報完全無授權介接！母子地號分割裂變及出售移轉每一階段均須填報附表四）',
+        warm_prescription: '重大防罰攔截！AI 跨期圖譜比對發現您去年申報的『新興段 0005 地號 (1,200 m²)』今年主表僅剩『0005-1 地號 (600 m²)』！不動產變動完全無介接資料，地號分割及分割後出售『0005-2 地號 (5,800萬元)』均須申報於附表四，且上傳前務必先點選『變動申報表』頁籤同步上傳！',
+        draft_before: { section: '附表四（公職人員變動財產申報表）', item_name: '土地變動欄空白（漏未申報 0005 分割及 0005-2 於 114/06/18 以 5,800 萬元出售）', declared_amount_ntd: 0 },
+        draft_after: { section: '附表四（公職人員變動財產申報表－土地）', item_name: '階段1：新興段0005分割新增0005-1、0005-2；階段2：0005-2移轉（114/06/18買賣出售 58,000,000元）＋雙表同傳鎖定', declared_amount_ntd: 58000000 }
+      },
+      B5: {
+        case_id: 'B5', short_title: '案例3：融資買台積電漏報1,503萬融資債務及融券賣陽明', rule_id: 'Rule 2-6', severity: 'RED',
+        declarant: '周冠宇（直轄市議員）', potential_fine_avoided_ntd: 320000, potential_fine_label: '免除 32 萬元信用交易漏報罰鍰',
+        legal_basis: '《公職人員財產申報法》第5條、未介接財產總覽（證券商信用交易之『融資債務』與『融券保證金債權』不在銀行授信介接範圍）',
+        warm_prescription: '貼心提醒：集保介接只會帶入融資買進的台積電股數，但『向凱基證券融資借款的 1,503 萬元』以及『日進證券融券賣出陽明 9 張的保證金 118 萬元』無自動介接喔！點擊按鈕即可依信用交易四宮格規則一次補齊債務、債權與備註欄！',
+        draft_before: { section: '（八）有價證券 / （十）債權 / （十一）債務', item_name: '僅匯入集保台積電股票；漏報凱基證券股票融資債務 1,503 萬及日進證券融券賣陽明 9,000 股', declared_amount_ntd: 0 },
+        draft_after: { section: '（十）債權 / （十一）債務 / （十三）備註', item_name: '(十一)債務：凱基證券股票融資 15,030,000 元；(十)債權：日進證券融券保證金 1,180,000 元；(十三)備註：融券賣陽明 9,000 股', declared_amount_ntd: 16210000 }
+      },
+      B6: {
+        case_id: 'B6', short_title: '案例B6：轉帳4,000萬借A公司有5B所得漏報3,600萬債權與抵押債務900萬', rule_id: 'Rule 2-6', severity: 'RED',
+        declarant: '許文龍（縣議會副議長）', potential_fine_avoided_ntd: 900000, potential_fine_label: '免除 90 萬元私人借貸與抵押漏報罰鍰',
+        legal_basis: '《公職人員財產申報法》第5條第1項第3款（私人借貸與不動產他項權利部私人抵押權完全無介接，須按基準日實際餘額申報）',
+        warm_prescription: 'AI 智慧健檢提醒：私人或公司間借貸（有 5B 利息所得）及地政謄本私人抵押權設定均無銀行介接！請按申報基準日『實際尚未清償餘額』補登對 A 公司債權 3,600 萬元與抵押借款債務 900 萬元。',
+        draft_before: { section: '（十）債權 / （十一）債務', item_name: '均填空白（惟查有借 A 公司款項尚餘 3,600 萬未還及土地謄本設定私人抵押權 900 萬）', declared_amount_ntd: 0 },
+        draft_after: { section: '（十）債權 36,000,000 元 / （十一）債務 9,000,000 元', item_name: '對 A 公司借貸債權實際餘額 36,000,000 元＋不動產抵押私人借款實際餘額 9,000,000 元', declared_amount_ntd: 45000000 }
+      },
+      B7: {
+        case_id: 'B7', short_title: '案例B7：跨年財產淨增1,170萬逾全家所得458萬之1倍預警', rule_id: 'Rule 2-6', severity: 'ORANGE',
+        declarant: '鄭雅雯（法官）', potential_fine_avoided_ntd: 240000, potential_fine_label: '免除 24 萬元財產異常增減立案與漏報債務風險',
+        legal_basis: '《公職人員財產申報法》第12條第2項（跨年財產增加逾全家全年所得總額 1 倍以上者，觸發異常增減查核說明）',
+        warm_prescription: '良醫預警：系統試算您全家今年申報淨資產較去年增加 1,170 萬元，已超過全家全年所得（458 萬元）1 倍以上！常見原因是漏填『配偶向民間/投資公司週轉借款』。補登配偶 800 萬元借款債務後，淨增幅（370萬）即回歸正常範圍！',
+        draft_before: { section: '跨年度淨資產增減預警檢核', item_name: '資產較前期淨增 1,170 萬 ＞ 全家所得 458 萬（漏未詢問配偶向投資公司借款 800 萬元）', declared_amount_ntd: 0 },
+        draft_after: { section: '（十一）債務補登配偶借款', item_name: '補登配偶向○○投資公司週轉借款餘額 8,000,000 元（淨資產增幅校正為 370 萬元，合於年所得範圍）', declared_amount_ntd: 8000000 }
+      },
+      B8: {
+        case_id: 'B8', short_title: '案例5：假耕地（地目田/農舍）與雙權狀打通自住屋檢核', rule_id: 'Rule 4-1', severity: 'RED',
+        declarant: '趙明德（政務次長／強制信託身分）', potential_fine_avoided_ntd: 600000, potential_fine_label: '免除 60 萬元應信託未信託罰鍰（對應 Y1.2 / Y11 院函）',
+        legal_basis: '《公職人員財產申報法》第7條第1項、《農業發展條例》第33條、監察院院函例稿 Y1.2（二戶均報自住）及 Y11（未信託原因填載錯誤）',
+        warm_prescription: '強制信託實質檢核預警：(1) 法定免信託『耕地』嚴格限於『特定農業區、一般農業區、山坡地保育區、森林區』內之『農牧用地』，都市計畫住宅區舊地目寫『田』或蓋農舍均非免信託耕地！(2) 自用房屋以『1戶（1張建物權狀）』為限，兩戶打通具 2 張獨立權狀仍屬 2 戶，其一須交付信託！',
+        draft_before: { section: '附表一丙（強制信託主表－不動產）', item_name: '都市住宅區(舊地目：田)誤填『耕地』免信託；兩戶打通雙權狀住宅均填『自用房屋』免信託', declared_amount_ntd: 42000000 },
+        draft_after: { section: '附表一丙（擇定1戶自住）＋附表三（移列辦理強制信託）', item_name: '都市計畫區地目田改列應交付信託；打通雙權狀屋擇定1戶自住，第2戶改註『刻正辦理信託中』', declared_amount_ntd: 42000000 }
+      },
+      B9: {
+        case_id: 'B9', short_title: '案例4：跨證券戶中鋼800+400股與台積電200股零股信託試算', rule_id: 'Rule 4-2', severity: 'RED',
+        declarant: '孫雅玲（公營事業董事長／強制信託身分）', potential_fine_avoided_ntd: 360000, potential_fine_label: '免除 36 萬元股票未交付信託罰鍰（對應 Y4.1 / Y3 / Y6 院函）',
+        legal_basis: '《公職人員財產申報法》第7條、114年書審實務作業指南 P.18-19（院函例稿 Y3、Y4.1、Y4.2、Y6）',
+        warm_prescription: '零股信託歸戶精算完成！系統用純 Python 幫您把不同券商帳戶加總囉：(1) 您在元大 A 戶 800 股＋富邦 B 戶 400 股的中鋼合計達 1,200 股 ≥ 1,000 股，屬『非零股』強制信託！(2) 台積電 200 股雖 < 1,000 股，但因您名下『股票＋債券50萬＋基金70萬』總額達 121.4 萬元（≥100萬門檻），連這 200 股零股也必須交付信託（或填『已向監察院指示通知處分中』出售）！',
+        draft_before: { section: '附表一丙（八）.1 股票【誤填零股免信託】', item_name: '本人A戶中鋼800股、B戶中鋼400股、台積電200股（另有債券+基金120萬）；配偶富邦金600+500股', declared_amount_ntd: 1425000 },
+        draft_after: { section: '純 Python 跨戶歸戶確定性試算結果【全數移列辦理信託】', item_name: '本人中鋼合計 1,200 股(非零股➔Y4.1)、台積電 200 股(總額121.4萬≥100萬➔Y3/Y6)、配偶富邦金合計 1,100 股(➔Y4.1)', declared_amount_ntd: 1425000 },
+        odd_lot_rows: [
+          { owner: '本人 孫雅玲', ticker: '2002 中鋼', detail: '元大A戶 800股 + 富邦B戶 400股 = 1,200股', totalSec: '1,214,000 元', verdict: '應信託（≥1,000股非零股 ➔ Y4.1）' },
+          { owner: '本人 孫雅玲', ticker: '2330 台積電', detail: '元大A戶 200股（真零股 <1,000股）', totalSec: '1,214,000 元 (≥100萬)', verdict: '應信託（有價證券總額達100萬 ➔ Y3/Y6）' },
+          { owner: '配偶 吳家豪', ticker: '2881 富邦金', detail: '凱基 600股 + 永豐金 500股 = 1,100股', totalSec: '211,000 元 (<100萬)', verdict: '應信託（≥1,000股非零股 ➔ Y4.1）' }
+        ]
+      },
+      N1: {
+        case_id: 'N1', short_title: '案例6：職務異動10日通報、公股董監事專任與代理真除定性', rule_id: 'Rule 1-1 ~ 1-5', severity: 'ORANGE',
+        declarant: '陳宏斌（公股指派財團法人董事／代理處長真除）', potential_fine_avoided_ntd: 120000, potential_fine_label: '保障申報期限權益、免除逾期申報 6 萬～120 萬元風險',
+        legal_basis: '《公職人員財產申報法施行細則》第22條、法務部 97.11.19 法政決字第 0971117901 號函、102.05.06 法授廉財字第 10205011110 號函',
+        warm_prescription: '人事／政風通報小幫手提醒您：(1) 代表政府或公股出任私法人董監事，異動原因必選『就(到)職』、職務狀況必選『專任』，並由實際指派機關於 10 日內按『存檔即上傳監察院』！(2) 於代理滿 3 個月申報期間內真除且受理機關未變動者，依法『僅須辦理代理申報，免再辦就(到)職申報』！',
+        draft_before: { section: '財產申報人職務異動通報平臺', item_name: '官派私法人董事誤選『兼任』且逾 18 日通報；代理滿 3 個月期間內真除同機關處長誤通報兩次', declared_amount_ntd: 0 },
+        draft_after: { section: '職務異動通報智慧定性校正', item_name: '10日內由實際指派機關通報『就(到)職＋專任』；代理申報期間內真除同受理機關鎖定『僅辦代理申報』', declared_amount_ntd: 0 }
+      },
+      B10: {
+        case_id: 'B10', short_title: '案例7：切換頁籤遺失信託合約PDF與處分前指示通知90天鐵律', rule_id: 'Rule 4-3 & 4-4', severity: 'RED',
+        declarant: '劉建國（官派公股董事長／強制信託身分）', potential_fine_avoided_ntd: 500000, potential_fine_label: '免除 10 萬～200 萬元處分未事前通知罰鍰＋防止附件遺失',
+        legal_basis: '《公職人員財產申報法》第9條第3項、第13條第3項（未事前或同時通知監察院處分信託財產處 10 萬～200 萬罰鍰）、114年書審實務指南 P.20',
+        warm_prescription: '雙重系統防呆已啟動！第一：信託財產擬買賣、贈與、出租或設定抵押權，務必『事前或同時』填具《指示通知表》送監察院（啟動 90 天處分期，依法不得展期）！第二：偵測到您切換申報系統頁籤，AI 已自動鎖定守護『信託合約.pdf』不遺失，並同步校正主表末頁具結勾選！',
+        draft_before: { section: '信託處分程序 ＆ 網路上傳頁籤監聽器', item_name: '擬設定抵押權未事前送指示通知表；切換頁籤導致『信託合約.pdf』清空遺失，且主表末頁誤勾無信託財產', declared_amount_ntd: 0 },
+        draft_after: { section: '全週期主動防呆攔截完成', item_name: '優先產出《信託財產管理或處分指示通知表》（啟動90天不可展期倒數）＋持久鎖定『信託合約.pdf』附件與末頁具結勾選', declared_amount_ntd: 0 }
+      }
+    };
+
+    const YUAN_TEMPLATES_LOCAL = {
+      'Y1.1': { code: 'Y1.1', filename: 'Y1.1應信託之不動產未信託(申報人陳述未信託理由)', subject: '有關臺端辦理114年定期財產申報，部分應交付信託之不動產尚未完成信託登記（業陳述理由）一案，請儘速辦理見復。' },
+      'Y1.2': { code: 'Y1.2', filename: 'Y1.2配偶二戶不動產均申報自住，應擇定一戶辦理信託', subject: '有關臺端與配偶申報二戶獨立權狀建物均填載為「自用房屋」免予信託，核與自用房屋僅限一戶之規定未合，請擇定一戶並就餘戶辦理信託。' },
+      'Y2': { code: 'Y2', filename: 'Y2應信託之不動產未信託(漏未填載未信託原因)', subject: '有關臺端申報不動產漏未填載「未能交付信託原因」，請查明補正並依法辦理信託。' },
+      'Y3': { code: 'Y3', filename: 'Y3應信託之零股未信託(有價證券總額已達100萬元)', subject: '有關臺端（或配偶）持有之國內上市（櫃）零股，因名下有價證券總額已達新臺幣100萬元門檻，依法仍應交付信託，請儘速辦理。' },
+      'Y4.1': { code: 'Y4.1', filename: 'Y4.1應信託之股票未信託(非零股，有價證券總額未達100萬元)', subject: '有關臺端（或配偶）跨證券帳戶合計持有同檔上市（櫃）股票已達1,000股以上（非屬零股），縱有價證券總額未達100萬元，依法仍應交付信託。' },
+      'Y4.2': { code: 'Y4.2', filename: 'Y4.2應信託之股票未信託(非零股，有價證券總額已達100萬元)', subject: '有關臺端（或配偶）持有達1,000股以上之國內上市（櫃）股票且有價證券總額已逾100萬元，尚未交付信託，請依限辦理。' },
+      'Y5': { code: 'Y5', filename: 'Y5應信託之股票或不動產刻正辦理信託中', subject: '有關臺端申報刻正辦理信託中之財產，請於完成信託移轉登記後檢附相關契約及證明文件報院備查。' },
+      'Y6': { code: 'Y6', filename: 'Y6更正申報資料並辦理零股信託', subject: '請臺端於所附申報表更正處簽名或蓋章後傳真回傳本院（切勿以網路重傳更正），並就達門檻之上市（櫃）零股儘速辦理交付信託。' },
+      'Y9': { code: 'Y9', filename: 'Y9股票或不動產權狀遺失應辦理補發並交付信託', subject: '有關臺端申報權狀遺失之應信託財產，請儘速向股務或地政機關申請補發後辦理強制信託。' },
+      'Y10': { code: 'Y10', filename: 'Y10股票疑似應信託--函申報人確認', subject: '有關臺端114年財產申報表所列股票疑似屬國內上市（櫃）應交付信託標的且未註明免信託原因一案，請於文到1個月內查明確認見復。' },
+      'Y11': { code: 'Y11', filename: 'Y11未能交付信託原因填寫錯誤(如非農發條例耕地/分別共有)', subject: '有關臺端填載之「未能交付信託原因」（如非屬農發條例第33條農牧用地耕地或屬分別共有）核與法令未合，請儘速辦理交付信託。' },
+      'Y99': { code: 'Y99', filename: 'Y99股票疑似應信託--通案函申報人確認(114.06.12新版)', subject: '有關臺端定期申報案件所列有價證券項目疑似具應交付強制信託情事，請於文到1個月內查明確認並函復本院。' }
+    };
+
+    const BATCHES_114 = [
+      { id: 'TIER-1', date: '115/01/15', sticky: '115.1.15', count: 292, prio: 'P0 最高優先（距啟動僅9天）', organs: '北北桃市議會(178人)＋總統府、行政院暨所屬信託身分(114人)', gazette: '預計 115年2月底、3月刊登公報' },
+      { id: 'TIER-2', date: '115/02/05', sticky: '115.2.5', count: 181, prio: 'P1 次高優先', organs: '中南高市議會（臺中63、臺南56、高雄62）', gazette: '預計 115年3月刊登公報' },
+      { id: 'TIER-3', date: '115/02/12', sticky: '115.2.12', count: 113, prio: 'P2 立院專梯', organs: '立法院（立法委員 113人，2期）', gazette: '預計 115年3月刊登公報' },
+      { id: 'TIER-4', date: '115/03/02', sticky: '115.3.2', count: 812, prio: 'P3 常規梯次', organs: '其他縣市議會(513人)＋司/考/監院暨所屬(48人)＋縣市府信託(251人)', gazette: '預計 115年4月、5月刊登公報' }
+    ];
+
+    const GRAPH_SCENARIOS = {
+      SCENARIO_1: {
+        title: '【劇本 1】111～113年 淡水竹圍段房地「配偶贈與」跨表移轉鏈（4節點閉環驗證）',
+        badge: '跨表勾稽預警：附表三所有人變更 vs 附表一丙變動欄空白提醒',
+        edgeLabels: ['提出處分指示', '113/08/09過戶', '跨表交叉比對'],
+        nodes: [
+          { id: 'G1', x: 24, y: 55, w: 246, h: 145, color: '#0284c7', step: 'STEP 1｜111~112 信託表', title: '所有人：李○○', line1: '新北市淡水區竹圍段 3,305.58 m²', line2: '持分 558/100000＋建物 152.33 m²', detail: '【監察院公報廉政專刊第194期、第249期】111/07/19 信託移轉予受託人第一商業銀行，信託前所有權人登記為「李○○」本人。' },
+          { id: 'G2', x: 312, y: 55, w: 246, h: 145, color: '#d97706', step: 'STEP 2｜113/08/27 指示通知表', title: '管理處分方式：「贈與」', line1: '事前／同時簽章通知監察院', line2: '符合本法第9條第3項程序鐵律', detail: '【監察院公報廉政專刊第258期 第388頁】委託人李○○就淡水竹圍段土地（3,305.58 m²）與同筆民權路建物（152.33 m²）向監察院提出「贈與」處分指示通知表。' },
+          { id: 'G3', x: 600, y: 55, w: 246, h: 145, color: '#059669', step: 'STEP 3｜113/09/10 新增信託表', title: '所有人變更：配偶 劉○○', line1: '移轉完成日：113/08/09', line2: '受託人：第一銀行（邱月琴）', detail: '【監察院公報廉政專刊第258期 第350頁】完成夫妻贈與後重新辦理信託申報，附表三「信託前所有權人」欄位由李○○變更為配偶「劉○○」。' },
+          { id: 'G4', x: 888, y: 55, w: 250, h: 145, color: '#e11d48', step: 'STEP 4｜113/11/01 定期交叉檢核', title: '⚠️ 附表一丙變動欄空白提醒', line1: '自動比對附表三 vs 附表一丙', line2: '彈出書審承辦人覆核提示', detail: '【114書審實務指南 P.16 交叉勾稽】AI 自動偵測 113/11/01 定期申報附表三竹圍段所有權人已變更為配偶劉○○，惟附表一丙「土地/建物變動情形」欄為空白，立即彈出覆核提醒供承辦人確認！' }
+        ]
+      },
+      SCENARIO_2: {
+        title: '【劇本 2】114～115年 泰山同興段 3 筆土地「抵押權設定」再信託鏈（68/90天不可展期合規）',
+        badge: 'Python 確定性時效核驗：第 68 天完成（≤ 90 天法定上限，提前 22 天完竣）',
+        edgeLabels: ['啟動90天倒數', '第68天完成登記', '職務異動連動'],
+        showGauge68: true,
+        nodes: [
+          { id: 'M1', x: 24, y: 55, w: 246, h: 145, color: '#0284c7', step: 'STEP 1｜114/12/17 指示通知表', title: '處分方式：「抵押權設定」', line1: '泰山同興段 3 筆土地(持分40/100)', line2: '面積 869.04 / 1535.03 / 666 m²', detail: '【監察院公報廉政專刊第309期 第363頁】申報人李○○就第一銀行受託之新北市泰山區同興段 3 筆分別共有土地（持分均為100分之40）事前提出「抵押權設定」指示通知表。' },
+          { id: 'M2', x: 312, y: 55, w: 246, h: 145, color: '#7c3aed', step: 'STEP 2｜90天處分倒數計時器', title: '⏱️ 第 68 天完成（合規 PASS）', line1: '114/12/17 ➔ 115/02/23 = 68 日', line2: '剩餘安全裕度 22 天（不可展期）', detail: '【純 Python 日期精算】民國 114/12/17 至 115/02/23 精確歷時 68 日曆天，嚴格符合 3 個月（90天）內完成處分且不得展期之法定鐵律！' },
+          { id: 'M3', x: 600, y: 55, w: 246, h: 145, color: '#059669', step: 'STEP 3｜115/02/23 新增信託表', title: '完成再信託移轉登記', line1: '同興段 3 筆面積持分 100% 吻合', line2: '啟動 30 天契約變更通知檢核', detail: '【監察院公報廉政專刊第309期 第356頁】抵押權設定完成後重新交付第一商業銀行信託，面積（869.04、1535.03、666 m²）與持分（40/100）經確定性比對完全一致。' },
+          { id: 'M4', x: 888, y: 55, w: 250, h: 145, color: '#0ea5e9', step: 'STEP 4｜職務異動智慧辨識', title: '職稱更新：1.代理院長 2.副院長', line1: '同受理機關（監察院）銜接檢核', line2: 'Rule 1-2 & 1-4 免重複辦卸離職', detail: '【跨模組智慧連動】AI 自動辨識 115/02/23 公報職稱欄位已更新為「1.監察院 代理院長、2.監察院 副院長」，自動核對職務異動通報紀錄與受理機關一致性。' }
+        ]
+      },
+      SCENARIO_SPLIT: {
+        title: '【劇本 3】測試軌 B4：地號 0005 母子地號分割裂變與出售漏報攔截圖譜',
+        badge: '攔截最高 120 萬元變動申報裁罰｜C類星號 ★ 傳真更正分流',
+        edgeLabels: ['母子地號裂變', '雙向防罰與C類處置'],
+        nodes: [
+          { id: 'S1', x: 40, y: 55, w: 325, h: 145, color: '#0284c7', step: '前期主表｜113/11/01', title: '母地號：新興段 0005 地號', line1: '原申報面積：1,200.00 m²', line2: '所有人：張國棟（變動申報身分）', detail: '前期定期申報主表登記持有新興段 0005 地號（面積 1,200 平方公尺）。' },
+          { id: 'S2', x: 418, y: 55, w: 325, h: 145, color: '#dc2626', step: '年度中地政分割裂變（無介接！）', title: '裂變為 0005-1 ＆ 0005-2 地號', line1: '0005-1 (600 m²) 留存本期主表', line2: '🚨 0005-2 (600 m²) 5,800萬出售消失！', detail: 'AI 圖譜偵測地號前綴「0005」母子號裂變且總面積減少 50%，精準揪出年度中分割出售卻未填報附表四變動表之高風險盲區！' },
+          { id: 'S3', x: 796, y: 55, w: 330, h: 145, color: '#059669', step: 'AI 雙向處置（事前防罰 / 事後C類）', title: '上傳前補登附表四 ／ 書審列 C 類 ★', line1: '外部：一鍵補登分割＋出售兩階段', line2: '內部：產出欄位轉換傳真底稿(禁網路更正)', detail: '於陽光智導艙直接攔截免罰 120 萬；若已進入書審端則自動歸類為 C 類更正案，產出傳真簽章頁並打紅色星號 ★。' }
+        ]
+      }
+    };
+
+    // App State
+    let currentCaseId = 'B1';
+    let currentCaseData = FALLBACK_CASES.B1;
+    let isDraftFixed = false;
+    let currentGraphKey = 'SCENARIO_1';
+    let activeGraphNodeIdx = 3;
+    let currentAuditScenario = 'LEE_114_A';
+    let officerSigned = false;
+    let supervisorSigned = false;
+    let backendOnline = false;
+
+    let hitlLedger = [
+      {
+        log_id: 'HITL-1151106-001',
+        timestamp_roc: '115/11/06 09:15:22',
+        case_ref: 'A-114-1101-REGULAR（李○○ 114年定期申報）',
+        reviewer_officer: '第一組承辦人 李大同',
+        supervisor_approver: '第一組組長 林○○',
+        glassbox_hash: 'sha256:9f84c2e1b0a7d56e3210c4a89d7f12e3',
+        gmail_draft_status: 'A類無誤案件免發院函，准予結案刊登公報'
+      }
+    ];
+
+    function showToast(msg) {
+      const t = document.getElementById('demoToast');
+      t.innerHTML = msg;
+      t.style.display = 'flex';
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => { t.style.display = 'none'; }, 3200);
+    }
+
+    // 🎬 3分鐘 Demo 分鏡導播快切與鍵盤快捷鍵
+    function toggleDirectorBar() {
+      const bar = document.getElementById('directorBar');
+      bar.style.display = bar.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function jumpDemoScene(sceneNum) {
+      [1, 2, 3, 4].forEach(n => {
+        document.getElementById('sceneBtn' + n).className = n === sceneNum ? 'scene-btn active' : 'scene-btn';
+      });
+      const tip = document.getElementById('teleprompterText');
+
+      if (sceneNum === 1) {
+        switchMode('GUIDANCE');
+        document.getElementById('missionDrawer').style.display = 'block';
+        tip.textContent = '💡 第1幕(0:00-0:30)：介紹頂部「自主實作」與「Glass-box 治理4大支柱（零幻覺Python＋Stateless防火牆）」';
+        showToast('🎬 已切換至【第 1 幕】：破題與 Glass-box AI 治理面板');
+      } else if (sceneNum === 2) {
+        switchMode('GUIDANCE');
+        document.getElementById('missionDrawer').style.display = 'none';
+        await selectGuidanceCase('B1');
+        tip.textContent = '💡 第2幕(0:30-1:30)：點擊「🛠️ 一鍵自動搬移欄位」展示預售屋290萬➔2,694萬校正，再點左側【案例4】展示跨證券戶零股精算！';
+        showToast('🎬 已切換至【第 2 幕】：☀️ 陽光智導艙（源頭防罰處方箋）');
+      } else if (sceneNum === 3) {
+        switchMode('AUDIT');
+        document.getElementById('missionDrawer').style.display = 'none';
+        switchAuditSubTab('TAB_A');
+        renderAssetGraph('SCENARIO_2');
+        tip.textContent = '💡 第3幕(1:30-2:25)：展示李○○同興段「第68/90天再信託」圖譜，接著點【子頁籤B】展示紅鉛筆打勾 √ 與黃色便利貼動畫！';
+        showToast('🎬 已切換至【第 3 幕】：🛡️ 跨期公報圖譜＆紅鉛筆批改預覽');
+      } else if (sceneNum === 4) {
+        switchMode('AUDIT');
+        document.getElementById('missionDrawer').style.display = 'none';
+        switchAuditSubTab('TAB_C');
+        await loadAuditScenario('UNREPORTED_CHANGE_C');
+        tip.textContent = '💡 第4幕(2:25-3:00)：展示1,398案看板、天藍色雙針審核單、Y6院函草稿鎖定，依序點擊「1️⃣承辦人蓋章 ➔ 2️⃣組長覆核蓋章」完美收尾！';
+        showToast('🎬 已切換至【第 4 幕】：ABCX 天藍審核單＆HITL 雙重蓋章結案');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+      if (e.key === 'h' || e.key === 'H') toggleDirectorBar();
+      if (e.key === '1') jumpDemoScene(1);
+      if (e.key === '2') jumpDemoScene(2);
+      if (e.key === '3') jumpDemoScene(3);
+      if (e.key === '4') jumpDemoScene(4);
+    });
+
+    // 初始化
+    async function initApp() {
+      populateGuidanceSelectors();
+      populateYuanSelect();
+      renderBatchKanban();
+
+      try {
+        const res = await fetch('/api/v1/datasets');
+        if (res.ok) {
+          const data = await res.json();
+          backendOnline = true;
+          if (data.hitl_ledger && data.hitl_ledger.length) hitlLedger = data.hitl_ledger;
+          const badge = document.getElementById('apiConnBadge');
+          badge.className = 'tag tag-green';
+          badge.textContent = '🟢 FastAPI + Google ADK 確定性引擎即時連線中';
+        }
+      } catch (_) {
+        backendOnline = false;
+        const badge = document.getElementById('apiConnBadge');
+        badge.className = 'tag tag-orange';
+        badge.textContent = '🟡 本地內建雙軌資料集獨立運行模式';
+      }
+
+      await selectGuidanceCase('B1');
+      await executeRagSearch();
+      renderAssetGraph('SCENARIO_1');
+      await loadAuditScenario('LEE_114_A');
+      renderHitlLedger();
+    }
+
+    function switchMode(mode) {
+      const isGuidance = mode === 'GUIDANCE';
+      document.body.className = isGuidance ? 'mode-guidance' : 'mode-audit';
+      document.getElementById('brandIcon').textContent = isGuidance ? '☀️' : '🛡️';
+      document.getElementById('sectionGuidance').style.display = isGuidance ? 'block' : 'none';
+      document.getElementById('sectionAudit').style.display = isGuidance ? 'none' : 'block';
+
+      document.getElementById('btnModeGuidance').className = isGuidance ? 'mode-btn active-guidance' : 'mode-btn';
+      document.getElementById('btnModeAudit').className = !isGuidance ? 'mode-btn active-audit' : 'mode-btn';
+    }
+
+    function toggleMissionDrawer() {
+      const el = document.getElementById('missionDrawer');
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // 模式一：陽光智導艙
+    function populateGuidanceSelectors() {
+      const sel = document.getElementById('fullCaseSelect');
+      const order = ['B1', 'B4', 'B5', 'B9', 'B8', 'N1', 'B10', 'B2', 'B3', 'B6', 'B7'];
+      sel.innerHTML = order.map(id => `<option value="${id}">[${id}] ${FALLBACK_CASES[id].short_title}</option>`).join('');
+      renderFeaturedCards();
+    }
+
+    function renderFeaturedCards() {
+      const container = document.getElementById('featuredCaseCards');
+      container.innerHTML = FEATURED_CARDS.map(card => {
+        const selected = card.id === currentCaseId ? 'selected' : '';
+        const tagClass = card.sev === 'RED' ? 'tag-red' : 'tag-orange';
+        return `
+          <button class="case-btn ${selected}" onclick="selectGuidanceCase('${card.id}')">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:2px;">
+              <span style="font-size:13.2px;font-weight:900;color:#0f172a;">【${card.slot}】${card.title}</span>
+              <span class="tag ${tagClass}">${card.fine}</span>
+            </div>
+            <div style="font-size:12px;color:#475569;">${card.sub}</div>
+          </button>
+        `;
+      }).join('');
+    }
+
+    async function selectGuidanceCase(caseId) {
+      currentCaseId = caseId;
+      isDraftFixed = false;
+      document.getElementById('fullCaseSelect').value = caseId;
+      renderFeaturedCards();
+
+      let payloadData = FALLBACK_CASES[caseId] || FALLBACK_CASES.B1;
+      if (backendOnline) {
+        try {
+          const res = await fetch('/api/v1/guidance/pre-check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ case_id: caseId })
+          });
+          if (res.ok) {
+            const apiJson = await res.json();
+            payloadData = { ...payloadData, ...apiJson };
+          }
+        } catch (_) { }
+      }
+      currentCaseData = payloadData;
+      const fineVal = payloadData.potential_fine_avoided_ntd || payloadData.potential_fine_ntd || 0;
+      document.getElementById('kpiCurrentSaved').textContent = fineVal > 0 ? 'NT$ ' + fineVal.toLocaleString() : '時效權益護航';
+      renderPrescriptionPanel();
+    }
+
+    function applyOneClickFix() {
+      isDraftFixed = true;
+      renderPrescriptionPanel();
+      showToast('✅ AI 已自動完成欄位搬移與金額校正！潛在裁罰風險歸零！');
+    }
+
+    function renderPrescriptionPanel() {
+      const c = currentCaseData;
+      const panel = document.getElementById('prescriptionPanel');
+      const activeSeverity = isDraftFixed ? 'GREEN' : (c.severity || 'RED');
+      const lampTitle = activeSeverity === 'RED'
+        ? '🔴 紅燈高風險攔截'
+        : activeSeverity === 'ORANGE'
+          ? '🟠 橙燈重要時效／異常預警'
+          : '🟢 綠燈合規通過（已完成一鍵智慧導正！）';
+
+      const bAmt = c.draft_before && c.draft_before.declared_amount_ntd > 0
+        ? `NT$ ${c.draft_before.declared_amount_ntd.toLocaleString()}` : '0 元 / 未填報';
+      const aAmt = c.draft_after && c.draft_after.declared_amount_ntd > 0
+        ? `NT$ ${c.draft_after.declared_amount_ntd.toLocaleString()}` : '已完成程序鎖定';
+
+      let oddLotHtml = '';
+      if (c.case_id === 'B9') {
+        const rows = FALLBACK_CASES.B9.odd_lot_rows;
+        oddLotHtml = `
+          <div style="margin-bottom:12px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;padding:10px 12px;">
+            <div style="font-size:12.5px;font-weight:900;color:#0f172a;margin-bottom:6px;">
+              🧮 <code>check_odd_lot_trust()</code> 純 Python 分戶跨證券戶歸戶精算明細（零 LLM 心算）：
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr><th>歸戶對象</th><th>股票代碼</th><th>跨證券戶股數相加</th><th>名下有價證券總額</th><th>確定性信託判定</th></tr>
+              </thead>
+              <tbody>
+                ${rows.map(r => `
+                  <tr>
+                    <td><b>${r.owner}</b></td>
+                    <td>${r.ticker}</td>
+                    <td>${r.detail}</td>
+                    <td>${r.totalSec}</td>
+                    <td><span class="tag tag-red">${r.verdict}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      panel.innerHTML = `
+        <div class="risk-header risk-${activeSeverity}">
+          <div>
+            <div style="font-size:12px;font-weight:800;opacity:0.88;">觸發準則：${c.rule_id}｜模擬對象：${c.declarant}</div>
+            <div style="font-size:16px;font-weight:900;margin-top:2px;">${lampTitle} — ${c.short_title}</div>
+          </div>
+          <div class="fine-pill">💰 成功規避裁罰：${c.potential_fine_label || ('免罰 ' + (c.potential_fine_avoided_ntd || 0).toLocaleString() + ' 元')}</div>
+        </div>
+
+        <div class="prescription-box">
+          <div style="font-weight:900;color:#92400e;margin-bottom:3px;">🌾 陽光智導輔導員溫馨處方箋（良醫治未病・取代事後裁罰）：</div>
+          <div>${c.warm_prescription}</div>
+        </div>
+
+        <div class="legal-box">
+          <b>⚖️ 法源與實務判決依據：</b>${c.legal_basis}
+        </div>
+
+        <!-- 左右對照式草稿轉換視圖（錄影時對比極度清晰！） -->
+        <div class="diff-grid">
+          <div class="diff-box diff-before ${isDraftFixed ? 'dimmed' : ''}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span class="tag tag-red">❌ 修正前申報草稿</span>
+              <span style="font-size:12px;font-weight:800;color:#9f1239;">金額：${bAmt}</span>
+            </div>
+            <div style="font-size:12.8px;font-weight:900;color:#881337;margin-bottom:3px;">${c.draft_before.section}</div>
+            <div style="font-size:12.5px;color:#1e293b;">${c.draft_before.item_name}</div>
+          </div>
+
+          <div class="diff-box ${isDraftFixed ? 'diff-after-active' : 'diff-after-pending'}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span class="tag ${isDraftFixed ? 'tag-green' : 'tag-blue'}">${isDraftFixed ? '✅ 已自動導正後欄位' : '✨ AI 預備導正目標欄位'}</span>
+              <span style="font-size:12px;font-weight:900;">金額：${aAmt}</span>
+            </div>
+            <div style="font-size:12.8px;font-weight:900;margin-bottom:3px;">${c.draft_after.section}</div>
+            <div style="font-size:12.5px;">${c.draft_after.item_name}</div>
+          </div>
+        </div>
+
+        ${oddLotHtml}
+
+        <button class="primary-action-btn ${isDraftFixed ? 'done' : ''}" onclick="applyOneClickFix()">
+          ${isDraftFixed
+          ? '✅ 已完成欄位智慧搬移與金額校正！可安心上傳（無狀態預檢紀錄已自動銷毀）'
+          : '🛠️ 一鍵自動搬移／修正申報草稿欄位（立即消除裁罰風險）'}
+        </button>
+      `;
+    }
+
+    async function runCustomDraftCheck() {
+      const remarks = document.getElementById('customRemarksInput').value.trim();
+      const valNtd = parseInt(document.getElementById('customCryptoVal').value || '0', 10) || 0;
+      const wallet = document.getElementById('customWalletAddr').value.trim();
+
+      let alerts = [];
+      if (/預售屋|建案|紅單|工程款|訂金/.test(remarks)) {
+        alerts.push('【Rule 2-2 紅燈攔截】備註欄偵測到預售屋／工程款字樣！依臺北高等行政法院 109 訴字 198 號判決，請移列至「(九).1 其他具有相當價值之財產」並填報買賣契約交易總價額（免罰 45 萬元）。');
+      }
+      if (valNtd >= 200000 && !wallet) {
+        alerts.push(`【Rule 2-5 114/11/01 虛擬資產新制攔截】虛擬資產交易價額合計 ${valNtd.toLocaleString()} 元已達 20 萬元門檻，惟必填欄位「錢包地址」為空白！`);
+      }
+
+      currentCaseData = {
+        case_id: 'CUSTOM',
+        short_title: '自訂草稿＆114新制虛擬資產即時體檢結果',
+        rule_id: 'Rule 2-2 & Rule 2-5',
+        severity: alerts.length ? 'RED' : 'GREEN',
+        declarant: '自訂測試申報人',
+        potential_fine_avoided_ntd: alerts.length ? 450000 : 0,
+        potential_fine_label: alerts.length ? '成功攔截預售屋與虛擬資產漏報風險' : '全數符合規定',
+        legal_basis: '《公職人員財產申報法》第5條、臺北高等行政法院109訴字第198號判決、114/11/01虛擬資產申報新制',
+        warm_prescription: alerts.length ? alerts.join('<br><br>') : '恭喜！您的自訂草稿備註欄與虛擬資產錢包地址均符合 16 條黃金準則！',
+        draft_before: {
+          section: '自訂輸入草稿（備註欄＋虛擬資產欄）',
+          item_name: `備註：「${remarks || '無'}」｜虛擬資產：${valNtd.toLocaleString()} 元｜錢包地址：「${wallet || '空白未填'}」`,
+          declared_amount_ntd: valNtd
+        },
+        draft_after: {
+          section: 'AI 自動導引修正後草稿',
+          item_name: '預售屋移列(九).1按契約總價申報＋補齊虛擬資產交易所／冷熱錢包地址檢核',
+          declared_amount_ntd: valNtd
+        }
+      };
+      isDraftFixed = alerts.length === 0;
+      renderPrescriptionPanel();
+      showToast('⚡ 已完成自訂草稿與 114 虛擬資產錢包地址即時掃描！');
+    }
+
+    function askRagPreset(q) {
+      document.getElementById('ragQuestionInput').value = q;
+      executeRagSearch();
+    }
+
+    async function executeRagSearch() {
+      const q = document.getElementById('ragQuestionInput').value.trim();
+      if (!q) return;
+      const box = document.getElementById('ragAnswerContainer');
+
+      if (backendOnline) {
+        try {
+          const res = await fetch('/api/v1/rag/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question: q })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            box.innerHTML = `
+              <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:11px;padding:11px 14px;">
+                <div style="font-size:12.8px;font-weight:900;color:#065f46;margin-bottom:3px;">📌 檢索命中主題：${data.matched_title || '陽光法案實務規範'}</div>
+                <div style="font-size:13px;color:#1e293b;white-space:pre-line;">${data.answer}</div>
+                <div style="font-size:12px;color:#047857;margin-top:6px;font-weight:800;">📖 法源與實務依據：${data.legal_source || data.primary_source}</div>
+              </div>
+            `;
+            return;
+          }
+        } catch (_) { }
+      }
+
+      let title = '上市櫃股票跨證券戶零股歸戶與 100 萬元強制信託門檻';
+      let ans = '按本人、配偶、未成年子女分戶獨立計算：(1) 同一人跨證券戶同檔上市櫃股票合計 ≥ 1,000 股屬「非零股」，不論總額是否達100萬均須信託（Y4.1/Y4.2）；(2) 合併 < 1,000 股（真零股），若該人名下「股票+債券+基金+其他有價證券」總額 ≥ 100 萬元，該零股亦須交付信託（Y3/Y6）。';
+      let src = '《公職人員財產申報法》第7條、114年書審實務作業指南 P.18-19';
+      if (/預售|198/.test(q)) {
+        title = '預售屋申報位置與總價額計算（109訴字第198號判決）';
+        ans = '預售屋屬「其他具有相當價值之財產（權利）」且地政無介接，應填報於主表「(九).1 珠寶、古董、字畫及其他具有相當價值之財產」，價額填寫「買賣契約交易總價額」，切勿僅寫於備註欄或僅填已付工程款。';
+        src = '《公職人員財產申報法》第5條、臺北高等行政法院109年度訴字第198號判決';
+      } else if (/耕地|地目|自住|打通/.test(q)) {
+        title = '免信託耕地（農發條例§33）與自用房屋單一權狀1戶限制';
+        ans = '免信託耕地嚴格限於「特定農業區、一般農業區、山坡地保育區、森林區」內之「農牧用地」（舊地目田或農舍均非免信託耕地）；自用房屋限 1 戶（單一建物權狀），兩戶打通若有 2 張權狀仍須擇一交付信託（Y1.2）。';
+        src = '《公職人員財產申報法》第7條、《農業發展條例》第33條、院函例稿 Y1.2 / Y11';
+      } else if (/公股|10日|代理|真除/.test(q)) {
+        title = '職務異動 10 日通報、公股董監事專任與代理真除銜接';
+        ans = '異動原因發生日起 10 日內由實際指派機關通報，公股董監事必選「就(到)職＋專任」；於代理滿 3 個月申報期間內真除且受理機關未變動者，僅須辦代理申報，免再辦就到職申報。';
+        src = '施行細則第22條、法務部 97法政決0971117901號函、102法授廉財10205011110號函';
+      } else if (/虛擬|錢包|保險|保單/.test(q)) {
+        title = '114/11/01 虛擬資產新制錢包地址與儲蓄型保單申報';
+        ans = '本人、配偶、未成年子女分別合計虛擬資產達 20 萬元即應申報（單類1,000元以下免報），必填「存放機構」與「錢包地址」；儲蓄型、投資型、年金型保單（含期滿、展期、減額繳清、停效未失效）均須申報。';
+        src = '114年書審實務作業指南 P.25、公職人員財產申報表填表說明';
+      }
+
+      box.innerHTML = `
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:11px;padding:11px 14px;">
+          <div style="font-size:12.8px;font-weight:900;color:#065f46;margin-bottom:3px;">📌 檢索命中主題：${title}</div>
+          <div style="font-size:13px;color:#1e293b;">${ans}</div>
+          <div style="font-size:12px;color:#047857;margin-top:6px;font-weight:800;">📖 法源與實務依據：${src}</div>
+        </div>
+      `;
+    }
+
+    // 模式二：廉政護航台
+    function switchAuditSubTab(tabId) {
+      document.getElementById('auditTabA').style.display = tabId === 'TAB_A' ? 'block' : 'none';
+      document.getElementById('auditTabB').style.display = tabId === 'TAB_B' ? 'block' : 'none';
+      document.getElementById('auditTabC').style.display = tabId === 'TAB_C' ? 'block' : 'none';
+
+      document.getElementById('subTabBtnA').className = tabId === 'TAB_A' ? 'subtab-btn active' : 'subtab-btn';
+      document.getElementById('subTabBtnB').className = tabId === 'TAB_B' ? 'subtab-btn active' : 'subtab-btn';
+      document.getElementById('subTabBtnC').className = tabId === 'TAB_C' ? 'subtab-btn active' : 'subtab-btn';
+    }
+
+    function renderAssetGraph(key, selectedIdx) {
+      currentGraphKey = key;
+      const sc = GRAPH_SCENARIOS[key];
+      activeGraphNodeIdx = typeof selectedIdx === 'number' ? selectedIdx : sc.nodes.length - 1;
+
+      document.getElementById('btnGraphS1').className = key === 'SCENARIO_1' ? 'btn-navy' : 'btn-secondary';
+      document.getElementById('btnGraphS2').className = key === 'SCENARIO_2' ? 'btn-navy' : 'btn-secondary';
+      document.getElementById('btnGraphS3').className = key === 'SCENARIO_SPLIT' ? 'btn-navy' : 'btn-secondary';
+
+      document.getElementById('assetGraphSummaryBar').innerHTML = `
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;background:#e2e8f0;padding:8px 14px;border-radius:10px;">
+          <span style="font-weight:900;color:#0f172a;font-size:13.8px;">${sc.title}</span>
+          <span class="tag tag-blue">${sc.badge}</span>
+        </div>
+      `;
+
+      const svg = document.getElementById('assetFlowSvg');
+      let defsAndEdges = `
+        <defs>
+          <marker id="arrowHead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+            <polygon points="0 0, 10 4, 0 8" fill="#38bdf8" />
+          </marker>
+          <filter id="selectedGlow" x="-15%" y="-15%" width="130%" height="130%">
+            <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#fbbf24" flood-opacity="0.75" />
+          </filter>
+        </defs>
+      `;
+
+      for (let i = 0; i < sc.nodes.length - 1; i++) {
+        const a = sc.nodes[i];
+        const b = sc.nodes[i + 1];
+        const x1 = a.x + a.w;
+        const y1 = a.y + a.h / 2;
+        const x2 = b.x - 4;
+        const y2 = b.y + b.h / 2;
+        const mx = (x1 + x2) / 2;
+        const lbl = (sc.edgeLabels && sc.edgeLabels[i]) || '';
+        defsAndEdges += `
+          <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#38bdf8" stroke-width="3.2" class="flow-edge-anim" marker-end="url(#arrowHead)" />
+          ${lbl ? `
+            <rect x="${mx - 42}" y="${y1 - 30}" width="84" height="20" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-width="1" />
+            <text x="${mx}" y="${y1 - 16}" text-anchor="middle" fill="#bae6fd" font-size="11" font-weight="800">${lbl}</text>
+          ` : ''}
+        `;
+      }
+
+      const nodesSvg = sc.nodes.map((n, idx) => {
+        const isSel = idx === activeGraphNodeIdx;
+        return `
+          <g class="flow-node-group" onclick="renderAssetGraph('${key}', ${idx})" ${isSel ? 'filter="url(#selectedGlow)"' : ''}>
+            <rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="14" fill="#1e293b" stroke="${isSel ? '#fbbf24' : n.color}" stroke-width="${isSel ? '3.2' : '2'}" />
+            <rect x="${n.x}" y="${n.y}" width="${n.w}" height="31" rx="14" fill="${n.color}" />
+            <text x="${n.x + 12}" y="${n.y + 20}" fill="#ffffff" font-size="12" font-weight="800">${n.step}</text>
+            <text x="${n.x + 12}" y="${n.y + 57}" fill="#f8fafc" font-size="14.5" font-weight="900">${n.title}</text>
+            <text x="${n.x + 12}" y="${n.y + 83}" fill="#cbd5e1" font-size="12.5">${n.line1}</text>
+            <text x="${n.x + 12}" y="${n.y + 106}" fill="#93c5fd" font-size="12" font-weight="700">${n.line2}</text>
+            <text x="${n.x + n.w - 12}" y="${n.y + 132}" text-anchor="end" fill="#fbbf24" font-size="11.5" font-weight="800">${isSel ? '● 目前檢視節點' : '點擊檢視公報證據 ➔'}</text>
+          </g>
+        `;
+      }).join('');
+
+      svg.innerHTML = defsAndEdges + nodesSvg;
+      inspectGraphNode(activeGraphNodeIdx);
+    }
+
+    function inspectGraphNode(idx) {
+      const sc = GRAPH_SCENARIOS[currentGraphKey];
+      const n = sc.nodes[idx];
+      let gaugeHtml = '';
+      if (sc.showGauge68) {
+        const pct = Math.round((68 / 90) * 100);
+        const circum = 2 * Math.PI * 30;
+        const offset = circum * (1 - 68 / 90);
+        gaugeHtml = `
+          <div style="display:flex;align-items:center;gap:12px;margin-top:10px;padding:9px 12px;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:10px;">
+            <svg width="72" height="72" viewBox="0 0 76 76" style="flex-shrink:0;">
+              <circle cx="38" cy="38" r="30" fill="none" stroke="#d1fae5" stroke-width="7" />
+              <circle cx="38" cy="38" r="30" fill="none" stroke="#059669" stroke-width="7" stroke-linecap="round"
+                stroke-dasharray="${circum.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}" transform="rotate(-90 38 38)" />
+              <text x="38" y="42" text-anchor="middle" font-size="13" font-weight="900" fill="#065f46">68/90天</text>
+            </svg>
+            <div style="font-size:12.5px;color:#064e3b;">
+              <b>純 Python 90天不可展期鐵律核驗通過（${pct}%）：</b><br>
+              114/12/17 指示通知 ➔ 115/02/23 完成再信託登記，共歷時 <b>68 日曆天</b>，提前 22 天完竣！
+            </div>
+          </div>
+        `;
+      }
+
+      document.getElementById('selectedGraphNodeDetail').innerHTML = `
+        <div style="font-size:12px;font-weight:900;color:#0284c7;margin-bottom:4px;">🔍 節點公報原文與 AI 確定性勾稽詳情（${n.step}）</div>
+        <div style="font-size:16px;font-weight:900;color:#0f172a;margin-bottom:6px;">${n.title}</div>
+        <div style="font-size:13.2px;color:#334155;line-height:1.6;">${n.detail}</div>
+        ${gaugeHtml}
+      `;
+    }
+
+    // 子頁籤 B & C
+    async function loadAuditScenario(scenarioKey) {
+      currentAuditScenario = scenarioKey;
+      officerSigned = false;
+      supervisorSigned = false;
+      document.getElementById('stampZone').innerHTML = '';
+      document.getElementById('triageScenarioSelect').value = scenarioKey;
+      document.getElementById('btnRedModeA').className = scenarioKey === 'LEE_114_A' ? 'btn-navy' : 'btn-secondary';
+      document.getElementById('btnRedModeB').className = scenarioKey === 'SYSTEM_DEFAULT_B' ? 'btn-navy' : 'btn-secondary';
+      document.getElementById('btnRedModeC').className = scenarioKey === 'UNREPORTED_CHANGE_C' ? 'btn-navy' : 'btn-secondary';
+
+      const btnOff = document.getElementById('btnOfficerSign');
+      if (btnOff) {
+        btnOff.textContent = '1️⃣ 承辦人初審蓋章確認';
+        btnOff.style.background = '#ffffff';
+      }
+
+      renderRedPencilSplit(scenarioKey);
+      renderSkyBlueSlip(scenarioKey);
+      refreshYuanLetterPreview();
+    }
+
+    function replayRedPencilAnimation() {
+      renderRedPencilSplit(currentAuditScenario);
+      showToast('✏️ 已重新播放 AI 擬真紅鉛筆刪除線與打勾 √ 動畫！');
+    }
+
+    function renderRedPencilSplit(scenarioKey) {
+      const box = document.getElementById('redPencilSplitContainer');
+
+      if (scenarioKey === 'LEE_114_A') {
+        box.innerHTML = `
+          <div class="gazette-paper">
+            <div class="gazette-header">公職人員財產申報表（附表一丙・114/11/01 定期申報）</div>
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:800;margin-bottom:8px;color:#334155;">
+              <span>申報人：李○○（監察院副院長）</span>
+              <span>出處：廉政專刊第 309 期 P.5-11</span>
+            </div>
+            <table class="data-table">
+              <thead><tr><th>類別</th><th>標示／廠牌</th><th>取得日期</th><th>申報表價額／未信託原因</th></tr></thead>
+              <tbody>
+                <tr><td>汽車</td><td><b>JAGUAR</b> (1,997cc)</td><td>109/05/19 買賣</td><td><code>（超過五年）</code> <span style="color:#64748b;font-size:11.5px;">(原228萬)</span></td></tr>
+                <tr><td>不動產</td><td>日本東京都港區芝浦二丁目</td><td>103/03/24 買賣</td><td>未能交付信託：<b>國外土地／國外房屋</b></td></tr>
+                <tr><td>不動產</td><td>雲林縣四湖鄉○○寮段 3,249 m²</td><td>107/04/11 分割繼承</td><td>未能交付信託：<b>耕地，特定區域農牧用地</b></td></tr>
+                <tr><td>不動產</td><td>臺北市大安區通化段○小段(1戶)</td><td>98/05/22 & 101/03/07</td><td>未能交付信託：<b>自用房屋及坐落基地</b></td></tr>
+                <tr><td>不動產</td><td>新北市泰山區全興路/福興三街3筆</td><td>106/01/04 繼承</td><td>未能交付信託：<b>未登記建物</b></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card" style="background:#f0fdf4;border:1.5px solid #86efac;">
+            <div style="font-weight:900;font-size:15px;color:#065f46;margin-bottom:10px;">
+              ✅ AI 確定性 5 年檢核 ＆ 不動產未信託原因 RAG 實質合規綠章（100% PASS）
+            </div>
+            <div style="display:grid;gap:8px;font-size:13px;">
+              <div style="background:#fff;padding:9px 12px;border-radius:10px;border:1px solid #bbf7d0;">
+                <span class="tag tag-green">✓ check_five_year_rule()</span>
+                <b>JAGUAR 汽車滿 5 年轉註核符：</b>109/05/19 購入距 114/11/01 申報基準日達 <b>5 年 5 個月</b>（≥5年），轉註「（超過五年）」正確！
+              </div>
+              <div style="background:#fff;padding:9px 12px;border-radius:10px;border:1px solid #bbf7d0;">
+                <span class="tag tag-green">✓ RAG 綠章 #1 & #2</span> <b>東京芝浦二丁目（境外不動產）＆雲林四湖耕地（農發條例§33農牧用地）：</b>均依法免交付信託。
+              </div>
+              <div style="background:#fff;padding:9px 12px;border-radius:10px;border:1px solid #bbf7d0;">
+                <span class="tag tag-green">✓ RAG 綠章 #3 & #4</span> <b>大安通化段自住屋（單一權狀1戶）＆泰山 3 筆未登記建物：</b>全數合規，直接歸入 <b>【A類案件】</b> 免傳統分案歸檔！
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (scenarioKey === 'SYSTEM_DEFAULT_B') {
+        box.innerHTML = `
+          <div class="gazette-paper">
+            <div class="gazette-header">公職人員財產申報表（114系統預設帶出錯誤原件）</div>
+            <div style="font-size:12.5px;color:#475569;margin-bottom:8px;font-weight:700;">
+              114年網路系統針對5年內取得不動產預設帶出「（房地總價額）」且申報人無法自刪（實務指南 P.12-15）：
+            </div>
+            <table class="data-table">
+              <thead><tr><th>頁次欄位</th><th>取得原因</th><th>系統列印原件文字</th></tr></thead>
+              <tbody>
+                <tr><td>附表一丙 第2頁（土地）</td><td>112/10/10 <b>繼承</b></td><td>897,150（公告現值）（房地總價額）</td></tr>
+                <tr><td>附表一丙 第2頁（單買地）</td><td>111/03/08 <b>買賣(無建物)</b></td><td>2,097,150（房地總價額）</td></tr>
+                <tr><td>附表一丙 末頁（信託具結）</td><td>已上傳附表三信託表</td><td>誤勾選「■第1選項（非屬強制信託範圍）」</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card" style="background:#fffbeb;border:1.5px solid #fbbf24;">
+            <div style="font-weight:900;font-size:15px;color:#991b1b;margin-bottom:10px;">
+              ✏️ AI 擬真【B類紅鉛筆手繪逕修圖層】（免通知申報人！紅筆劃除打勾 √ 移第 5 組）
+            </div>
+            <div style="display:grid;gap:10px;">
+              <div style="background:#fffdf9;padding:12px;border-radius:10px;border:1.5px solid #fca5a5;display:grid;grid-template-columns:1.35fr 1fr;gap:10px;align-items:center;">
+                <div>
+                  <div style="font-size:12px;color:#64748b;">附表一丙 第2頁（5年內繼承土地）：</div>
+                  <div style="font-size:15.5px;font-weight:800;margin-top:2px;">
+                    897,150（公告現值）<span class="red-strike-anim">（房地總價額）</span><span class="red-check">√</span>
+                  </div>
+                  <div style="font-size:12px;color:#64748b;margin-top:6px;">附表一丙 第2頁（僅買土地無建物）：</div>
+                  <div style="font-size:15.5px;font-weight:800;margin-top:2px;">
+                    2,097,150 <span class="red-strike-anim">（房地總價額）</span><span class="red-check">√</span>
+                  </div>
+                </div>
+                <div class="yellow-sticky">
+                  📌 黃色長條便利貼（貼本頁右側）：<br>
+                  P.2 紅筆打勾 √ 處「（房地總價額）」係 114 系統預設帶出，請<b>第 5 組打字人員</b>逕予刪除！
+                </div>
+              </div>
+
+              <div style="background:#fffdf9;padding:11px 12px;border-radius:10px;border:1.5px solid #fca5a5;">
+                <div style="font-size:12px;color:#64748b;">附表一丙 末頁具結欄（Rule 4-4 有報附表三惟重傳漏勾信託銀行）：</div>
+                <div style="font-size:14px;font-weight:800;margin-top:3px;">
+                  <span class="red-strike-anim">■第1選項（非屬強制信託範圍）</span>
+                  <span style="color:#dc2626;font-weight:900;"> ➔ 紅筆補勾 ■第2選項（第一商業銀行）</span><span class="red-check">√</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      box.innerHTML = `
+        <div class="gazette-paper">
+          <div class="prohibition-banner">
+            🚫 【重要禁令】禁止建議申報人以網路更正！（避免誤刪歷史資料、增加編製比對表與電話諮詢負擔）
+          </div>
+          <div style="font-weight:900;font-size:14.5px;margin-bottom:8px;">📄 C類案件偵測：附表一甲主表有新購／分割出售土地，惟附表四變動表漏未填載</div>
+          <table class="data-table">
+            <thead><tr><th>附表一甲（主表原欄位）</th><th>主表登載內容</th><th>AI 一鍵轉換為「附表四（變動表）」欄位</th></tr></thead>
+            <tbody>
+              <tr><td>登記（取得）時間</td><td>113/11/06 ＆ 114/06/18</td><td>➔ <b>變動時間</b>：113/11/06 ／ 114/06/18</td></tr>
+              <tr><td>登記（取得）原因</td><td>買賣 ／ 分割出售</td><td>➔ <b>變動原因</b>：買賣 ／ 分割出售</td></tr>
+              <tr><td>取得價額</td><td>17,300,000(房地總價額)</td><td>➔ <b>變動時之價額</b>：17,300,000(房地總價額)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card" style="background:#fef2f2;border:1.5px solid #fca5a5;">
+          <div style="font-weight:900;font-size:15px;color:#991b1b;margin-bottom:10px;">
+            ⭐ AI 自動生成《欄位轉換傳真更正底稿》與 C類紅色星號（★）標記預覽
+          </div>
+          <div style="background:#fffdf9;padding:13px;border-radius:10px;border:1.5px solid #dc2626;margin-bottom:11px;">
+            <div style="font-size:12px;color:#64748b;margin-bottom:4px;">申報人簽章傳真（02-23210558）回傳後，於整筆新增最左側標記紅色星號：</div>
+            <div style="font-size:14.5px;font-weight:900;color:#0f172a;">
+              <span class="red-star">★</span> 桃園市龜山區大崗段 0000 地號｜變動時間：113/11/06｜變動原因：買賣｜變動時之價額：17,300,000(房地總價額) <span class="chop-stamp" style="font-size:11.5px;padding:1px 6px;">張國棟印</span>
+            </div>
+          </div>
+          <div class="yellow-sticky">
+            📌 C類掛號與裝訂鐵律（實務指南 P.8-10）：<br>
+            1. 交登記桌掛「<b>更正申報條碼</b>」分案，於「審核作業」登打片語。<br>
+            2. 更正申報表<b>「不要」和主表、附表裝訂在一起</b>，僅放在同一卷夾移交第 5 組！
+          </div>
+        </div>
+      `;
+    }
+
+    function renderBatchKanban() {
+      const grid = document.getElementById('batchKanbanGrid');
+      grid.innerHTML = BATCHES_114.map((b, i) => `
+        <div style="background:${i === 0 ? '#fffbeb' : '#f8fafc'};border:1.5px solid ${i === 0 ? '#f59e0b' : '#cbd5e1'};border-radius:12px;padding:11px 12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+            <span class="tag ${i === 0 ? 'tag-red' : 'tag-blue'}">${b.prio}</span>
+            <span class="yellow-sticky" style="padding:2px 8px;font-size:11.5px;">便利貼：${b.sticky}</span>
+          </div>
+          <div style="font-size:18.5px;font-weight:900;color:#0f172a;">期限：${b.date} <span style="font-size:14px;color:#0284c7;">（${b.count}人）</span></div>
+          <div style="font-size:12px;color:#334155;margin-top:3px;">${b.organs}</div>
+          <div style="font-size:11.5px;color:#64748b;margin-top:3px;">📰 ${b.gazette}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderSkyBlueSlip(scenarioKey) {
+      const box = document.getElementById('skyBlueSlipContainer');
+      const cfg = scenarioKey === 'LEE_114_A'
+        ? { name: '李○○（監察院副院長）', sticky: '115.3.2', f1a: '—', f1c: 'A', f4: 'X', f3: 'A', letter: '無須另行發函（A類准予結案）', c1: false, c2: false, c3: false, c4: false }
+        : scenarioKey === 'SYSTEM_DEFAULT_B'
+          ? { name: '李榮長（果菜市場總經理）', sticky: '115.1.15', f1a: '—', f1c: 'B', f4: 'X', f3: 'A', letter: '無須另行發函（紅筆打勾√移第5組）', c1: false, c2: false, c3: false, c4: false }
+          : { name: '張國棟（立法委員）', sticky: '115.2.12', f1a: 'A', f1c: '—', f4: 'C', f3: 'X', letter: '須另行發函（已建立鎖定狀態之 Gmail 草稿）', c1: true, c2: false, c3: false, c4: true };
+
+      box.innerHTML = `
+        <div class="sky-review-slip">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:15.5px;font-weight:900;">《114年網路定期申報案件形式審核單》</div>
+            <span class="yellow-sticky" style="padding:2px 9px;font-size:12px;">卷宗標籤：${cfg.sticky}</span>
+          </div>
+          <div style="font-size:13px;font-weight:800;margin-bottom:6px;">申報人：${cfg.name}</div>
+          <table class="slip-table">
+            <thead>
+              <tr><th>附表一甲(一般)</th><th>附表一丙(信託主表)</th><th>附表四(變動表)</th><th>附表三(信託表)</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="abcx-letter">${cfg.f1a}</span></td>
+                <td><span class="abcx-letter is-${cfg.f1c}">${cfg.f1c}</span></td>
+                <td><span class="abcx-letter is-${cfg.f4}">${cfg.f4}</span></td>
+                <td><span class="abcx-letter">${cfg.f3}</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="font-size:12.5px;background:rgba(255,255,255,0.8);padding:8px 11px;border-radius:8px;margin-top:8px;">
+            <div><b>是否須另行發函處理：</b>${cfg.letter}</div>
+            <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:10px;">
+              <span>${cfg.c1 ? '☑' : '☐'} 不動產或股票未交付信託</span>
+              <span>${cfg.c2 ? '☑' : '☐'} 股票或不動產權狀遺失</span>
+              <span>${cfg.c3 ? '☑' : '☐'} 信託辦理中</span>
+              <span>${cfg.c4 ? '☑' : '☐'} 其他（C類簽章更正）</span>
+            </div>
+          </div>
+          <div style="font-size:12px;margin-top:8px;font-weight:800;color:#075985;">
+            📎 實務規範：釘在申報表右下角（釘 2 支釘書針），避免遮住左上角申報人姓名與機關。
+          </div>
+          <div class="staple-marks" title="模擬右下角2支釘書針裝訂位置">
+            <span>右下角雙針裝訂處：</span>
+            <span class="staple-pin"></span>
+            <span class="staple-pin"></span>
+          </div>
+        </div>
+      `;
+    }
+
+    function populateYuanSelect() {
+      const sel = document.getElementById('yuanCodeSelect');
+      sel.innerHTML = Object.values(YUAN_TEMPLATES_LOCAL).map(t =>
+        `<option value="${t.code}" ${t.code === 'Y6' ? 'selected' : ''}>${t.filename}</option>`
+      ).join('');
+    }
+
+    function refreshYuanLetterPreview() {
+      const code = document.getElementById('yuanCodeSelect').value || 'Y6';
+      const round = parseInt(document.getElementById('correctionRoundSelect').value || '1', 10);
+      const form = document.getElementById('targetFormSelect').value || '主表';
+      const tpl = YUAN_TEMPLATES_LOCAL[code] || YUAN_TEMPLATES_LOCAL.Y6;
+
+      const phrasePrefix = (form === '主表' && round === 1)
+        ? `【第1次】更正案<主表>`
+        : `【第2次】更正案<${form === '主表' ? '變動表' : form}>【第1次】`;
+      const fullPhrase = `${phrasePrefix}｜依例稿 ${tpl.code} 辦理：${tpl.subject}`;
+
+      const wmClass = supervisorSigned ? 'yuan-watermark unlocked' : 'yuan-watermark';
+      const wmText = supervisorSigned ? '✅ 雙簽覆核完成・已解鎖准予發文' : '🔒 Gmail 草稿鎖定中・嚴禁自動寄出';
+
+      document.getElementById('phraseAndLetterBox').innerHTML = `
+        <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:9px 12px;margin-bottom:9px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+            <span style="font-size:12px;font-weight:900;color:#0f172a;">📋 財管系統「審核作業」片語（自動區分第1次／第2次更正）：</span>
+            <button class="btn-secondary" style="padding:2px 9px;font-size:11.5px;" onclick="copySystemPhrase('${fullPhrase.replace(/'/g, "\\'")}')">一鍵複製片語</button>
+          </div>
+          <div id="copiedPhraseNotice" style="font-size:12.8px;color:#0369a1;font-weight:800;">${fullPhrase}</div>
+        </div>
+
+        <div class="yuan-doc-paper">
+          <div class="${wmClass}">${wmText}</div>
+          <div style="font-family:var(--font-serif);font-size:16px;font-weight:900;color:#0f172a;margin-bottom:4px;">監察院 函（例稿 ${tpl.code} 初稿）</div>
+          <div style="font-size:11.5px;color:#64748b;margin-bottom:4px;">例稿路徑：<code>Y:\\C010_第一組\\C1.書審--例稿--院函\\${tpl.filename}.doc</code></div>
+          <div style="font-size:12.8px;color:#1e293b;"><b>主旨：</b>${tpl.subject}</div>
+        </div>
+      `;
+    }
+
+    function copySystemPhrase(text) {
+      if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => { });
+      showToast('📋 已將「財管系統審核作業片語」複製至剪貼簿！');
+    }
+
+    function step1OfficerSign() {
+      officerSigned = true;
+      const officer = document.getElementById('hitlOfficerInput').value.trim() || '承辦人 李大同';
+      const btn = document.getElementById('btnOfficerSign');
+      btn.textContent = '✅ 1️⃣ 承辦人已蓋章（待組長覆核）';
+      btn.style.background = '#e0f2fe';
+      document.getElementById('stampZone').innerHTML = `<span class="chop-stamp">${officer} 印</span>`;
+      showToast('🔏 承辦人已完成初審蓋章！案件移送第一組組長覆核。');
+    }
+
+    async function step2SupervisorApprove() {
+      const officer = document.getElementById('hitlOfficerInput').value.trim() || '第一組承辦人 李大同';
+      const supervisor = document.getElementById('hitlSupervisorInput').value.trim() || '第一組組長 林○○';
+      officerSigned = true;
+      supervisorSigned = true;
+
+      document.getElementById('stampZone').innerHTML = `
+        <span class="chop-stamp">${officer} 印</span>
+        <span class="chop-stamp" style="border-color:#b91c1c;color:#991b1b;">${supervisor} 決行章</span>
+      `;
+      refreshYuanLetterPreview();
+
+      const code = currentAuditScenario === 'UNREPORTED_CHANGE_C' ? document.getElementById('yuanCodeSelect').value : null;
+      const reqBody = {
+        case_ref: currentAuditScenario === 'LEE_114_A' ? 'A-114-1101-REGULAR（李○○114定期）'
+          : currentAuditScenario === 'SYSTEM_DEFAULT_B' ? 'B-114-1101-SYSTEM（李榮長B類紅筆案）'
+            : 'C-114-1101-CHANGE（張國棟C類更正與院函案）',
+        abcx_result: currentAuditScenario === 'LEE_114_A' ? { '附表一丙': 'A', '附表三': 'A', '附表四': 'X' }
+          : currentAuditScenario === 'SYSTEM_DEFAULT_B' ? { '附表一丙': 'B', '附表三': 'A', '附表四': 'X' }
+            : { '附表一甲': 'A', '附表四': 'C', '附表三': 'X' },
+        yuan_letter_code: code,
+        reviewer_officer: officer,
+        supervisor_approver: supervisor,
+        decision: 'DUAL_SIGNED_APPROVED'
+      };
+
+      if (backendOnline) {
+        try {
+          const res = await fetch('/api/v1/governance/hitl-approve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reqBody)
+          });
+          if (res.ok) {
+            const data = await res.json();
+            hitlLedger = data.recent_ledger || hitlLedger;
+            renderHitlLedger();
+            showToast('🏛️ 組長已完成雙重覆核決行！SHA-256 不可竄改治理雜湊已寫入帳本！');
+            return;
+          }
+        } catch (_) { }
+      }
+
+      const now = new Date();
+      const rocY = now.getFullYear() - 1911;
+      const ts = `${rocY}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${now.toTimeString().slice(0, 8)}`;
+      hitlLedger.unshift({
+        log_id: 'HITL-' + Math.floor(100000 + Math.random() * 900000),
+        timestamp_roc: ts,
+        case_ref: reqBody.case_ref,
+        reviewer_officer: officer,
+        supervisor_approver: supervisor,
+        glassbox_hash: 'sha256:' + Array.from({ length: 28 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
+        gmail_draft_status: code ? `組長已覆核解鎖 ${code} 院函 Gmail 草稿發送權限` : 'A/B類無須發函，已完成雙簽歸檔'
+      });
+      renderHitlLedger();
+      showToast('🏛️ 組長已完成雙重覆核決行！SHA-256 不可竄改治理雜湊已寫入帳本！');
+    }
+
+    function renderHitlLedger() {
+      const box = document.getElementById('hitlLedgerBox');
+      box.innerHTML = `
+        <div style="font-size:12px;font-weight:900;color:#065f46;margin-bottom:4px;">
+          🛡️ Glass-box 不可竄改人工覆核簽章日誌（最新 ${Math.min(2, hitlLedger.length)} 筆）：
+        </div>
+        <div style="display:grid;gap:5px;">
+          ${hitlLedger.slice(0, 2).map(item => `
+            <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:7px 10px;font-size:12px;">
+              <div style="display:flex;justify-content:space-between;font-weight:800;color:#064e3b;">
+                <span>[${item.timestamp_roc}] ${item.case_ref}</span>
+                <code>${item.glassbox_hash}</code>
+              </div>
+              <div style="color:#1e293b;margin-top:2px;">
+                初審：${item.reviewer_officer} ➔ 覆核：${item.supervisor_approver}｜${item.gmail_draft_status || ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+
+</html>

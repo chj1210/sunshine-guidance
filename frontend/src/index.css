@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 擬真紅鉛筆手寫劃線與便利貼視覺樣式 */
+.red-pencil-strike {
+  position: relative;
+  display: inline-block;
+  color: #7f1d1d;
+}
+.red-pencil-strike::after {
+  content: '';
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: 52%;
+  height: 3px;
+  background: linear-gradient(90deg, #dc2626 0%, #ef4444 65%, #b91c1c 100%);
+  transform: rotate(-3deg);
+  border-radius: 2px;
+}
+.sticky-note-yellow {
+  background: linear-gradient(180deg, #fef08a 0%, #fde047 100%);
+  box-shadow: 3px 4px 10px rgba(0, 0, 0, 0.14);
+  border-left: 4px solid #eab308;
+}
+.blue-audit-slip {
+  background: linear-gradient(155deg, #d8f3fa 0%, #bce8f5 100%);
+  border: 2px solid #0284c7;
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.15);
+}

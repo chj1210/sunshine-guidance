@@ -1,0 +1,157 @@
+# ==============================================================================
+# Agent Designer 自動化行政協同工作流配置檔
+# 專案名稱：陽光智導・廉政護航 (sunshine-guidance-and-audit-agent)
+# 主責機關：監察院公職人員財產申報處（公務同仁自主實作）
+# ==============================================================================
+schema_version: "1.0"
+workflow_id: "cy-sunshine-guidance-and-audit-v115"
+display_name: "陽光智導・廉政護航：公職人員財產申報主動輔導與智慧審核雙向賦能工作流"
+language: "zh-TW"
+calendar_era: "ROC_MINGUO" # 全程採用中華民國紀年（民國年）
+
+# ------------------------------------------------------------------------------
+# 1. 資料與知識庫輸入源 (Context & Project GE Apps)
+# ------------------------------------------------------------------------------
+context_and_ge_apps:
+  sovereign_deployment_boundary:
+    mode: "ON_PREMISE_OR_GOV_ISOLATED_VPC"
+    stateless_guidance_firewall: true
+    description: "申報人上傳前體檢採無狀態（Stateless）隔離架構，絕不留存對話與草稿紀錄供事後查核裁罰使用"
+
+  knowledge_base_mounts:
+    - id: "kb_114_audit_guide"
+      title: "《114年度定期申報書審作業實務指南：變動及信託身分申報案件審核重點》"
+      doc_type: "PDF_HANDBOOK"
+      scope: ["ABCX分流", "紅鉛筆打勾√與打星號★", "房地總價額規則", "零股100萬信託", "C類網路更正禁令"]
+    - id: "kb_2025_personnel_notify"
+      title: "《2025財產申報人職務異動通報暨全國公職人員財產申報系統視訊宣導說明會簡報》"
+      doc_type: "PDF_SLIDES"
+      scope: ["10日通報時效", "公股董監事專任定性", "代理滿3個月真除免重複申報", "司法官晉級與調動", "最後一職卸離職"]
+    - id: "kb_unconnected_assets_catalog"
+      title: "《一般／變動／信託未介接財產總覽與十大裁罰誤報態樣彙編》"
+      doc_type: "STRUCTURED_RULES"
+      scope: ["預售屋109訴字198號判決", "114/11/1虛擬資產錢包地址", "股票融資融券", "5B私人借貸債權", "未上市股票vs事業投資"]
+    - id: "kb_yuan_official_letters"
+      title: "監察院第一組書審院函例稿庫（Y1.1 至 Y99 共 12 種標準範本）"
+      mount_path: 'Y:\C010_第一組\C1.書審--例稿--院函'
+      templates:
+        - "Y1.1.不動產或股票信託辦理中114.07.07"
+        - "Y1.2配偶二戶不動產均申報自住114.07.17"
+        - "Y2.權狀或股票遺失114.07.28"
+        - "Y3.總額已達100萬-零股應交付信託114.06.12"
+        - "Y4.1.總額未達100萬-非零股應交付信託114.06.12"
+        - "Y4.2不論總額是否達100萬-非零股應交付信託-副本抄送配偶114.06.12"
+        - "Y5.不動產或股票出售中114.06.12"
+        - "Y6.本人有價證券達100萬-零股要信託--配偶未達100萬--非零股要信託114.06.12"
+        - "Y9.函-文到7日內向地政機關申請補發權狀--補發後辦理信託114.06.12"
+        - "Y10.股票疑似應信託--函申報人確認114.5.2"
+        - "Y11.未能交付信託原因填寫錯誤而未信託--提醒儘速辦理信託114.06.12"
+        - "Y99.股票疑似應信託--函申報人確認114.06.12"
+
+  mcp_servers:
+    - server_id: "cy-sunshine-dual-track-mcp"
+      transport: "stdio"
+      command: "python"
+      args: ["workflow/mcp_sunshine_server.py"]
+      exposed_resources:
+        - "sunshine://datasets/track-a-lee-hung-chun-111-115"
+        - "sunshine://datasets/track-b-ten-penalty-interceptions"
+        - "sunshine://templates/yuan-letters-y1-to-y99"
+      exposed_tools:
+        - "check_five_year_rule"
+        - "check_odd_lot_trust"
+        - "reconcile_cross_period_assets"
+        - "map_yuan_letter_template"
+        - "rank_audit_batches_by_deadline"
+        - "create_hitl_gmail_draft"
+
+# ------------------------------------------------------------------------------
+# 2. 行事曆時效里程碑連動 (Calendar Milestones & Agentic Ranking)
+# ------------------------------------------------------------------------------
+calendar_milestones:
+  external_guidance_milestones:
+    - id: "EXT_PERSONNEL_10D"
+      name: "職務異動法定通報期限"
+      trigger_rule: "event_date + 10 calendar days"
+      statutory_basis: "公職人員財產申報法施行細則第22條"
+      alert_action: "屆期前3日推播提醒指派/服務機關承辦人點擊『存檔即上傳監察院』，避免遲延影響申報人期限"
+    - id: "EXT_ANNUAL_AUTH_OPEN"
+      name: "定期申報授權介接資料開放下載日"
+      fixed_schedule_mmdd: "12-05"
+      alert_action: "提醒參加授權介接申報人自 12 月 5 日起登入下載介接資料，並啟動 16 條黃金準則盲區健檢"
+    - id: "EXT_ANNUAL_DEADLINE"
+      name: "年度定期申報法定截止日"
+      fixed_schedule_mmdd: "12-31 23:59"
+      alert_action: "變動身分人員強制提醒須先點進『變動申報表』頁籤、強制信託人員守護『信託合約.pdf』不遺失"
+    - id: "EXT_TRUST_DISPOSAL_90D"
+      name: "信託財產管理或處分指示後完成期限（鐵律不可展期）"
+      trigger_rule: "instruction_notice_date + 90 calendar days (NON_EXTENDABLE)"
+      statutory_basis: "公職人員財產申報法第9條第3項"
+      alert_action: "啟動 90 天不可展期倒數計時器（如李○○同興段案於第 68 天完竣），第 60/75/85 天分級預警"
+    - id: "EXT_TRUST_AMENDMENT_30D"
+      name: "信託處分完成後契約變更／新增信託通知期限"
+      trigger_rule: "disposal_completion_date + 30 calendar days"
+      alert_action: "處分移轉登記完成後 1 個月內提醒檢附契約變動文件申報"
+
+  internal_audit_milestones:
+    annual_prep_and_kickoff:
+      training_session: "115/01/02 10:00（書審教育訓練）"
+      registry_printing: "115/01/02 ～ 115/01/05（登記桌篩選名冊、列印申報表）"
+      audit_kickoff: "115/01/06 12:00前（書審作業正式啟動，總計 1,398 案）"
+      annual_account_review_reset: "每年 08/31（通報平臺承辦人權限自動轉為『清查停用』提醒重啟）"
+
+    gazette_publication_batches_1398:
+      agentic_ranking_policy: "依結案期限距離天數、案件複雜度（C類優先於B類優先於A類）自動排序待審佇列，並印製卷宗夾便利貼日期標籤"
+      tiers:
+        - tier_id: "BATCH_1_JAN15"
+          deadline_roc: "115/01/15"
+          folder_sticky_tag: "115.1.15"
+          headcount: 292
+          breakdown: "臺北市議會(53)、新北市議會(64)、桃園市議會(61)、總統府/行政院暨所屬信託身分(114)"
+          agent_priority: 1
+        - tier_id: "BATCH_2_FEB05"
+          deadline_roc: "115/02/05"
+          folder_sticky_tag: "115.2.5"
+          headcount: 181
+          breakdown: "臺中市議會(63)、臺南市議會(56)、高雄市議會(62)"
+          agent_priority: 2
+        - tier_id: "BATCH_3_FEB12"
+          deadline_roc: "115/02/12"
+          folder_sticky_tag: "115.2.12"
+          headcount: 113
+          breakdown: "立法院立法委員(113人，分2期公報)"
+          agent_priority: 3
+        - tier_id: "BATCH_4_MAR02"
+          deadline_roc: "115/03/02"
+          folder_sticky_tag: "115.3.2"
+          headcount: 812
+          breakdown: "其他縣市議會(513)、司法院/考試院/監察院暨所屬(48)、各縣市政府信託身分(251)"
+          agent_priority: 4
+
+# ------------------------------------------------------------------------------
+# 3. 雙向輸出與人類在環 (Outputs & Human-in-the-Loop Gmail / Docs)
+# ------------------------------------------------------------------------------
+bidirectional_outputs_and_hitl:
+  external_declarant_output:
+    artifact_type: "GOOGLE_DOCS_OR_PDF_REPORT"
+    template_title: "《申報上傳前 AI 智慧體檢與輔導處方報告》"
+    delivery_mode: "申報人端即時預覽與一鍵修正草稿欄位（Stateless 不落盤存證）"
+    confirmation_gate: "申報義務人親自檢視確認後，點選自然人憑證上傳"
+
+  internal_auditor_outputs:
+    - output_id: "OUT_BLUE_SLIP_ABCX"
+      title: "《網路定期申報案件形式審核單 (ABCX)》預填單"
+      physical_sop: "列印藍色審核單釘在申報表右下角（2支釘書針），避免遮住左上角申報人姓名與服務機關"
+    - output_id: "OUT_AUDIT_SYSTEM_PHRASE"
+      title: "財管系統『審核作業』自動插入片語"
+      distinction_rule: "自動區分【第1次】更正案<主表> 與 【第2次】更正案<變動表/信託表>【第1次】，嚴禁主附表併案書審"
+    - output_id: "OUT_HITL_GMAIL_DRAFT"
+      connector: "Gmail_Workspace_Draft_Only"
+      trigger_condition: "triage_class == 'C' or trust_violation_detected == True"
+      attachments:
+        - "欄位轉換快速傳真更正簽章頁（登記時間/原因/價額 ➔ 變動時間/原因/變動時之價額，頂部加印『禁止建議申報人以網路更正』紅字警示）"
+        - "Y1.1 ～ Y99 對應監察院院函例稿草稿 (.docx / .pdf)"
+      enforce_draft_lock: true
+      human_in_the_loop_gates:
+        gate_1_officer: "第一組書審承辦人檢視紅鉛筆座標與片語後電子簽章確認"
+        gate_2_supervisor: "第一組組長完成覆核簽章（若屬 Y1.1/Y2/Y5/Y9 自動加會管制人員）始解鎖寄發權限"
